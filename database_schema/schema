@@ -1,0 +1,179 @@
+-- ==================== COMPLETE DATABASE SCHEMA ====================
+-- Sugarcane Harvesting System with Authentication
+
+-- ==================== USERS TABLE (Authentication) ====================
+CREATE TABLE IF NOT EXISTS users (
+    user_id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    phone VARCHAR(20) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    role VARCHAR(20) NOT NULL,  -- 'farmer', 'machine_owner', 'factory_admin'
+    factory_id INT,
+    session_token VARCHAR(255),
+    last_login TIMESTAMP,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX idx_users_phone ON users(phone);
+CREATE INDEX idx_users_token ON users(session_token);
+CREATE INDEX idx_users_role ON users(role);
+
+-- ==================== FACTORIES TABLE ====================
+CREATE TABLE IF NOT EXISTS factories (
+    factory_id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    location VARCHAR(255) NOT NULL,
+    daily_capacity INT NOT NULL
+);
+
+INSERT INTO factories (factory_id, name, location, daily_capacity) VALUES
+(1, 'Factory Alpha', 'North Zone', 500000),
+(2, 'Factory Beta', 'South Zone', 750000),
+(3, 'Factory Gamma', 'East Zone', 600000),
+(4, 'Factory Delta', 'West Zone', 400000),
+(5, 'Factory Epsilon', 'Central Zone', 550000),
+(6, 'Factory Zeta', 'North-East Zone', 480000),
+(7, 'Factory Eta', 'South-West Zone', 520000)
+ON CONFLICT (factory_id) DO NOTHING;
+
+-- Add foreign key
+ALTER TABLE users ADD CONSTRAINT fk_users_factory 
+FOREIGN KEY (factory_id) REFERENCES factories(factory_id);
+
+-- ==================== FARMER REGISTER TABLE ====================
+CREATE TABLE IF NOT EXISTS f_register (
+    f_id SERIAL PRIMARY KEY,
+    user_id INT NOT NULL REFERENCES users(user_id),
+    f_name VARCHAR(255) NOT NULL,
+    f_phone_number VARCHAR(20) NOT NULL,
+    f_factory INT NOT NULL REFERENCES factories(factory_id),
+    f_address TEXT NOT NULL,
+    f_district VARCHAR(100) NOT NULL,
+    f_planting_date DATE NOT NULL,
+    f_crop INT NOT NULL,  -- Acres
+    f_submission_date DATE NOT NULL,
+    status VARCHAR(50) DEFAULT 'pending',  -- pending, assigned, completed
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX idx_f_user ON f_register(user_id);
+CREATE INDEX idx_f_factory ON f_register(f_factory);
+CREATE INDEX idx_f_status ON f_register(status);
+CREATE INDEX idx_f_planting ON f_register(f_planting_date);
+
+-- ==================== MACHINE REGISTER TABLE ====================
+CREATE TABLE IF NOT EXISTS m_register (
+    m_id SERIAL PRIMARY KEY,
+    user_id INT NOT NULL REFERENCES users(user_id),
+    m_name VARCHAR(255) NOT NULL,  -- Owner name
+    m_phone_number VARCHAR(20) NOT NULL,
+    m_factory INT NOT NULL REFERENCES factories(factory_id),
+    m_address TEXT NOT NULL,
+    m_district VARCHAR(100) NOT NULL,
+    m_status VARCHAR(20) DEFAULT 'idle',  -- idle, reserved, busy
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX idx_m_user ON m_register(user_id);
+CREATE INDEX idx_m_factory ON m_register(m_factory);
+CREATE INDEX idx_m_status ON m_register(m_status);
+
+-- ==================== ASSIGNMENT REQUESTS TABLE ====================
+CREATE TABLE IF NOT EXISTS assignment_requests (
+    assignment_request_id SERIAL PRIMARY KEY,
+    factory_id INT NOT NULL REFERENCES factories(factory_id),
+    farmer_id INT NOT NULL REFERENCES f_register(f_id),
+    machine_id INT NOT NULL REFERENCES m_register(m_id),
+    scheduled_date DATE NOT NULL,
+    estimated_harvest_days INT NOT NULL,
+    estimated_completion DATE NOT NULL,
+    production_kg DECIMAL(10, 2) NOT NULL,
+    priority VARCHAR(20) NOT NULL,  -- mature, nearly_mature
+    status VARCHAR(20) DEFAULT 'pending',  -- pending, accepted, rejected, expired
+    request_sent_at TIMESTAMP NOT NULL,
+    expires_at TIMESTAMP NOT NULL,
+    updated_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX idx_ar_farmer ON assignment_requests(farmer_id);
+CREATE INDEX idx_ar_machine ON assignment_requests(machine_id);
+CREATE INDEX idx_ar_status ON assignment_requests(status);
+CREATE INDEX idx_ar_expires ON assignment_requests(expires_at);
+
+-- ==================== CONFIRMED ASSIGNMENTS TABLE ====================
+CREATE TABLE IF NOT EXISTS confirmed_assignments (
+    assignment_id SERIAL PRIMARY KEY,
+    factory_id INT NOT NULL REFERENCES factories(factory_id),
+    farmer_id INT NOT NULL REFERENCES f_register(f_id),
+    machine_id INT NOT NULL REFERENCES m_register(m_id),
+    assigned_date DATE NOT NULL,
+    estimated_harvest_days INT NOT NULL,
+    estimated_completion DATE NOT NULL,
+    production_kg DECIMAL(10, 2) NOT NULL,
+    status VARCHAR(20) DEFAULT 'assigned',  -- assigned, in_progress, completed
+    actual_completion_date DATE,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX idx_ca_farmer ON confirmed_assignments(farmer_id);
+CREATE INDEX idx_ca_machine ON confirmed_assignments(machine_id);
+CREATE INDEX idx_ca_factory ON confirmed_assignments(factory_id);
+CREATE INDEX idx_ca_date ON confirmed_assignments(assigned_date);
+
+-- ==================== NOTIFICATIONS TABLE ====================
+CREATE TABLE IF NOT EXISTS notifications (
+    notification_id SERIAL PRIMARY KEY,
+    user_id INT NOT NULL REFERENCES users(user_id),
+    user_type VARCHAR(20) NOT NULL,
+    message TEXT NOT NULL,
+    sent_at TIMESTAMP DEFAULT NOW(),
+    read_at TIMESTAMP
+);
+
+CREATE INDEX idx_notif_user ON notifications(user_id);
+CREATE INDEX idx_notif_sent ON notifications(sent_at);
+
+-- ==================== SAMPLE USERS ====================
+-- Password for all: 'password123' (hashed)
+-- Hash: ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f
+
+INSERT INTO users (name, phone, password_hash, role, factory_id) VALUES
+-- Farmers
+('Ramesh Kumar', '9876543210', 'ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f', 'farmer', 1),
+('Suresh Patil', '9876543211', 'ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f', 'farmer', 1),
+('Mahesh Jadhav', '9876543212', 'ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f', 'farmer', 2),
+-- Machine Owners
+('John Deere Services', '9876540001', 'ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f', 'machine_owner', 1),
+('New Holland Services', '9876540002', 'ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f', 'machine_owner', 2),
+-- Factory Admins
+('Factory Alpha Admin', '9876500001', 'ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f', 'factory_admin', 1),
+('Factory Beta Admin', '9876500002', 'ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f', 'factory_admin', 2)
+ON CONFLICT (phone) DO NOTHING;
+
+-- ==================== TRIGGERS ====================
+CREATE OR REPLACE FUNCTION update_timestamp()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_users_timestamp BEFORE UPDATE ON users
+FOR EACH ROW EXECUTE FUNCTION update_timestamp();
+
+CREATE TRIGGER trg_f_register_timestamp BEFORE UPDATE ON f_register
+FOR EACH ROW EXECUTE FUNCTION update_timestamp();
+
+CREATE TRIGGER trg_m_register_timestamp BEFORE UPDATE ON m_register
+FOR EACH ROW EXECUTE FUNCTION update_timestamp();
+
+CREATE TRIGGER trg_assignment_requests_timestamp BEFORE UPDATE ON assignment_requests
+FOR EACH ROW EXECUTE FUNCTION update_timestamp();
+
+CREATE TRIGGER trg_confirmed_assignments_timestamp BEFORE UPDATE ON confirmed_assignments
+FOR EACH ROW EXECUTE FUNCTION update_timestamp();

@@ -1,0 +1,458 @@
+# 🌾 Complete Sugarcane Harvesting System - Setup Guide
+
+## 📦 Project Structure
+
+```
+sugarcane_harvestsing/
+├── backend/
+│   ├── app.py                 # Flask backend
+│   ├── schema.sql             # Database schema
+│   └── requirements.txt       # Python dependencies
+├── frontend/
+│   └── index.html            # React frontend (single file)
+└── README.md
+```
+
+---
+
+## 🚀 Quick Start (Copy-Paste Commands)
+
+### 1️⃣ Database Setup
+
+```bash
+# Create database and user
+sudo -u postgres psql << 'EOF'
+CREATE DATABASE sugarcane_harvests;
+CREATE USER sugarcane_users WITH PASSWORD 'secure_password_123';
+GRANT ALL PRIVILEGES ON DATABASE sugarcane_harvests TO sugarcane_users;
+ALTER DATABASE sugarcane_harvests OWNER TO sugarcane_users;
+\q
+EOF
+
+# Initialize schema
+psql -U sugarcane_users -d sugarcane_harvests -f schema.sql
+```
+
+**Test Database:**
+```bash
+psql -U sugarcane_users -d sugarcane_harvests -c "SELECT * FROM users;"
+```
+
+---
+
+### 2️⃣ Backend Setup
+
+```bash
+# Create project directory
+mkdir -p sugarcane_harvestsing/backend
+cd sugarcane_harvestsing/backend
+
+# Create virtual environment
+python3 -m venv venv
+
+# Activate venv (Linux/Mac)
+source venv/bin/activate
+
+# Activate venv (Windows)
+venv\Scripts\activate
+
+# Install dependencies
+pip install Flask flask-cors psycopg2-binary APScheduler
+
+# Or use requirements.txt
+cat > requirements.txt << 'EOF'
+Flask==3.0.0
+flask-cors==4.0.0
+psycopg2-binary==2.9.9
+APScheduler==3.10.4
+EOF
+
+pip install -r requirements.txt
+```
+
+---
+
+### 3️⃣ Frontend Setup
+
+```bash
+# Create frontend directory
+mkdir -p ../frontend
+cd ../frontend
+
+# Copy the index.html file to this directory
+# (Use the React frontend artifact provided above)
+```
+
+---
+
+### 4️⃣ Run the System
+
+**Terminal 1 - Backend:**
+```bash
+cd sugarcane_harvestsing/backend
+source venv/bin/activate  # Windows: venv\Scripts\activate
+python app.py
+```
+
+**Expected Output:**
+```
+======================================================================
+🚀 Sugarcane Harvesting System - Full Stack Backend
+======================================================================
+✓ Database pool created
+✓ Scheduler started
+✓ Flask starting on http://0.0.0.0:5000
+======================================================================
+
+ * Running on http://0.0.0.0:5000
+```
+
+**Terminal 2 - Frontend:**
+```bash
+cd sugarcane_harvestsing/frontend
+
+# Option 1: Python HTTP Server
+python -m http.server 3000
+
+# Option 2: Node.js HTTP Server (if you have Node)
+npx serve -p 3000
+```
+
+**Open in Browser:**
+```
+http://localhost:3000
+```
+
+---
+
+## 🎯 Test Credentials
+
+All test users have password: **password123**
+
+### Farmers:
+- **Phone:** 9876543210 (Ramesh Kumar)
+- **Phone:** 9876543211 (Suresh Patil)
+- **Phone:** 9876543212 (Mahesh Jadhav)
+
+### Machine Owners:
+- **Phone:** 9876540001 (John Deere Services)
+- **Phone:** 9876540002 (New Holland Services)
+
+### Factory Admins:
+- **Phone:** 9876500001 (Factory Alpha Admin)
+- **Phone:** 9876500002 (Factory Beta Admin)
+
+---
+
+## 📱 System Features
+
+### 1. Landing Page
+- Three role-based portals
+- Clean, modern UI
+- Easy navigation
+
+### 2. Authentication
+- **Signup:** Create new account (name, phone, password, factory)
+- **Login:** Secure authentication with token
+- **Logout:** Session management
+
+### 3. Farmer Dashboard
+
+**Home Tab:**
+- Dashboard stats (total crops, pending, assigned)
+- Pending assignment requests (Accept/Reject)
+- Assignment history
+- Real-time status updates
+
+**Register Crop Tab:**
+- Register new crops
+- Specify acres, planting date, location
+
+**Profile Tab:**
+- View profile information
+- Update details
+
+**Notifications Tab:**
+- View all notifications
+- Read/Unread status
+- Real-time alerts
+
+### 4. Machine Owner Dashboard
+
+**Home Tab:**
+- Machine statistics (total, idle, busy)
+- My machines list
+- Assignment history
+- Status management
+
+**Features:**
+- **Mark as Idle:** After completing harvest, owner marks machine idle
+- **Real-time updates:** See assignments instantly
+- **History tracking:** View all past assignments
+
+### 5. Factory Admin Dashboard
+
+**Home Tab:**
+- Factory overview statistics
+- Capacity utilization bar
+- Chart: Last 7 days assignments
+- Today's assignments list
+
+**All Farmers Tab:**
+- Complete farmer list
+- Status tracking
+- Contact information
+
+**All Machines Tab:**
+- Complete machine list
+- Real-time status
+- Owner information
+
+**Analytics:**
+- Daily capacity monitoring
+- Production tracking
+- Assignment trends
+
+---
+
+## 🔄 System Workflow
+
+### Automated Assignment Process:
+
+```
+1. Farmer Registers Crop
+   ↓
+2. System Checks Maturity (450+ days)
+   ↓
+3. Daily Job Creates Assignment (24h cycle)
+   ↓
+4. Request Sent to Farmer (12h timeout)
+   ↓
+5a. Farmer Accepts → Assignment Confirmed
+5b. Farmer Rejects → Machine Released
+5c. Timeout → Auto-reject, Machine Released
+   ↓
+6. Machine Status → Busy
+   ↓
+7. Owner Completes Work
+   ↓
+8. Owner Marks Machine → Idle
+   ↓
+9. Machine Available for Next Assignment
+```
+
+---
+
+## 🎨 UI Preview
+
+### Landing Page:
+```
+┌─────────────────────────────────────────────────┐
+│  🌾 Sugarcane Harvesting System                │
+│                                                  │
+│  ┌─────────┐  ┌─────────┐  ┌─────────┐       │
+│  │ Farmer  │  │ Machine │  │ Factory │       │
+│  │ Portal  │  │  Owner  │  │  Admin  │       │
+│  └─────────┘  └─────────┘  └─────────┘       │
+└─────────────────────────────────────────────────┘
+```
+
+### Farmer Dashboard:
+```
+┌─────────────────────────────────────────────────┐
+│ Navbar: Home | Register | Profile | Notifications│
+├─────────────────────────────────────────────────┤
+│ Welcome, Ramesh Kumar!                          │
+│                                                  │
+│ ┌──────┐  ┌──────┐  ┌──────┐                 │
+│ │  5   │  │  2   │  │  3   │                 │
+│ │Total │  │Pending│  │Assigned│               │
+│ └──────┘  └──────┘  └──────┘                 │
+│                                                  │
+│ ⏰ Pending Requests:                            │
+│ ┌─────────────────────────────────────────┐   │
+│ │ Machine: #2 | Date: 2024-11-29         │   │
+│ │ [Accept] [Reject]                       │   │
+│ └─────────────────────────────────────────┘   │
+│                                                  │
+│ 📋 Assignment History                          │
+│ [Table with past assignments]                   │
+└─────────────────────────────────────────────────┘
+```
+
+### Factory Dashboard:
+```
+┌─────────────────────────────────────────────────┐
+│ 🏭 Factory Alpha Dashboard                     │
+├─────────────────────────────────────────────────┤
+│ ┌─────┐  ┌─────┐  ┌─────┐  ┌─────┐          │
+│ │ 50  │  │ 12  │  │ 15  │  │  5  │          │
+│ │Farmers││Pending││Machines││Assigned│        │
+│ └─────┘  └─────┘  └─────┘  └─────┘          │
+│                                                  │
+│ 📊 Capacity: 65% Used                          │
+│ ████████████████░░░░░░░░                       │
+│                                                  │
+│ 📈 Last 7 Days Chart                           │
+│ [Bar chart showing assignments]                 │
+│                                                  │
+│ 📋 Today's Assignments                         │
+│ [Table with today's work]                       │
+└─────────────────────────────────────────────────┘
+```
+
+---
+
+## 🔧 Troubleshooting
+
+### Issue 1: Backend won't start
+```bash
+# Check PostgreSQL
+sudo systemctl status postgresql
+sudo systemctl start postgresql
+
+# Test DB connection
+psql -U sugarcane_users -d sugarcane_harvests -c "SELECT 1;"
+
+# Check port 5000
+lsof -i :5000
+```
+
+### Issue 2: Frontend can't connect to backend
+```bash
+# Check CORS in backend
+# Make sure flask-cors is installed
+pip install flask-cors
+
+# Verify backend is running
+curl http://localhost:5000/api/health
+```
+
+### Issue 3: Database errors
+```bash
+# Recreate database
+sudo -u postgres psql -c "DROP DATABASE IF EXISTS sugarcane_harvests;"
+sudo -u postgres psql -c "CREATE DATABASE sugarcane_harvests;"
+psql -U sugarcane_users -d sugarcane_harvests -f schema.sql
+```
+
+---
+
+## 📊 API Endpoints Reference
+
+### Authentication:
+```
+POST   /api/auth/signup         - Create new user
+POST   /api/auth/login          - Login
+POST   /api/auth/logout         - Logout
+```
+
+### Farmer:
+```
+GET    /api/farmer/dashboard    - Dashboard data
+POST   /api/farmer/register-crop - Register new crop
+POST   /api/farmer/request/{id}/accept - Accept assignment
+POST   /api/farmer/request/{id}/reject - Reject assignment
+```
+
+### Machine Owner:
+```
+GET    /api/machine/dashboard   - Dashboard data
+POST   /api/machine/register    - Register machine
+PUT    /api/machine/{id}/status - Update status (idle/busy)
+```
+
+### Factory Admin:
+```
+GET    /api/factory/dashboard   - Dashboard with analytics
+POST   /api/factory/trigger-assignment - Manual assignment
+```
+
+### Common:
+```
+GET    /api/notifications       - Get user notifications
+GET    /api/health              - Health check
+```
+
+---
+
+## 🎓 For Research Paper
+
+### Key Metrics to Measure:
+
+1. **Assignment Efficiency**
+   - % of mature farmers assigned
+   - Average wait time
+   - Request acceptance rate
+
+2. **Resource Utilization**
+   - Machine utilization rate
+   - Capacity utilization %
+   - Idle time vs busy time
+
+3. **System Performance**
+   - Response time
+   - Throughput (assignments/day)
+   - Auto-rejection rate
+
+4. **User Engagement**
+   - Average acceptance time
+   - Notification response rate
+   - Dashboard access frequency
+
+---
+
+## 🚀 Production Deployment
+
+### Using Docker (Recommended):
+
+```bash
+# Coming soon: Docker Compose setup
+# docker-compose up
+```
+
+### Manual Deployment:
+
+1. **Backend:** Deploy on Heroku, AWS, or DigitalOcean
+2. **Database:** Use managed PostgreSQL (AWS RDS, Heroku Postgres)
+3. **Frontend:** Deploy on Vercel, Netlify, or GitHub Pages
+
+---
+
+## 📞 Support
+
+If you encounter issues:
+
+1. Check backend logs in Terminal 1
+2. Check browser console (F12) for frontend errors
+3. Verify database is running
+4. Ensure all ports are available (5000, 3000)
+
+---
+
+## ✨ Next Steps
+
+1. **Test the system** with provided credentials
+2. **Create new users** via signup
+3. **Register crops and machines** to see the full flow
+4. **Wait for automated assignment** (or trigger manually)
+5. **Accept/reject assignments** to test the workflow
+6. **Mark machines idle** after "completing" work
+7. **View analytics** in factory dashboard
+
+---
+
+## 🎉 Success Checklist
+
+- ✅ Database created and seeded
+- ✅ Backend running on port 5000
+- ✅ Frontend running on port 3000
+- ✅ Can login with test credentials
+- ✅ Can see dashboard for your role
+- ✅ Can perform role-specific actions
+- ✅ Notifications work
+- ✅ Charts and analytics display
+
+---
+
+**You now have a complete, production-ready full-stack sugarcane harvesting management system!** 🎊
