@@ -6,6 +6,48 @@ export default function MachineOwnerDashboard({ user, token, onLogout }) {
     const [activeTab, setActiveTab] = useState('home');
     const [dashboardData, setDashboardData] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [machineData, setMachineData] = useState({
+        address: "",
+        district: ""
+    });
+
+    const handleChange = (e) => {
+        setMachineData({
+            ...machineData,
+            [e.target.name]: e.target.value
+        });
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+
+        try {
+            const res = await fetch(API_BASE + "/machine/register", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`
+                },
+                body: JSON.stringify(machineData)
+            });
+
+            if (res.ok) {
+                alert("Machine registration submitted successfully!");
+                setMachineData({
+                    address: "",
+                    district: ""
+                });
+                setActiveTab('home');
+                loadDashboard();
+            } else {
+                const errorData = await res.json();
+                alert(`Error: ${errorData.error}`);
+            }
+        } catch (err) {
+            console.error(err);
+            alert("Error sending data");
+        }
+    };
 
     useEffect(() => {
         loadDashboard();
@@ -161,22 +203,14 @@ export default function MachineOwnerDashboard({ user, token, onLogout }) {
                 <div className="hero">
                     <h2 className="hero-title">Register New Machine</h2>
                     <div style={{maxWidth: '500px', margin: '2rem auto', textAlign: 'left', background: 'white', padding: '2rem', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)'}}>
-                        <form onSubmit={(e) => {
-                            e.preventDefault();
-                            alert('Machine registration submitted successfully!');
-                            setActiveTab('home');
-                        }}>
-                            <div style={{marginBottom: '1rem'}}>
-                                <label style={{display: 'block', marginBottom: '0.5rem', fontWeight: 'bold'}}>Machine Name / Model</label>
-                                <input type="text" required style={{width: '100%', padding: '0.8rem', border: '1px solid #ccc', borderRadius: '6px'}} />
-                            </div>
+                        <form onSubmit={handleSubmit}>
                             <div style={{marginBottom: '1rem'}}>
                                 <label style={{display: 'block', marginBottom: '0.5rem', fontWeight: 'bold'}}>Operating District</label>
-                                <input type="text" required style={{width: '100%', padding: '0.8rem', border: '1px solid #ccc', borderRadius: '6px'}} />
+                                <input type="text" name="district" value={machineData.district} onChange={handleChange} required style={{width: '100%', padding: '0.8rem', border: '1px solid #ccc', borderRadius: '6px'}} />
                             </div>
                             <div style={{marginBottom: '1rem'}}>
                                 <label style={{display: 'block', marginBottom: '0.5rem', fontWeight: 'bold'}}>Base Location Address</label>
-                                <textarea required rows="3" style={{width: '100%', padding: '0.8rem', border: '1px solid #ccc', borderRadius: '6px'}}></textarea>
+                                <textarea name="address" value={machineData.address} onChange={handleChange} required rows="3" style={{width: '100%', padding: '0.8rem', border: '1px solid #ccc', borderRadius: '6px'}}></textarea>
                             </div>
                             <button type="submit" className="btn-primary" style={{width: '100%', marginTop: '1rem', padding: '1rem'}}>Register Machine</button>
                         </form>

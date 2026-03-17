@@ -16,6 +16,9 @@ def generate_token():
 
 def verify_token(token):
     """Verify session token and return user"""
+    if not token:
+        return None
+        
     conn = None
     try:
         conn = get_db_conn()
