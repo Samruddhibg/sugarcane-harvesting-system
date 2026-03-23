@@ -3,7 +3,7 @@
 ## 📦 Project Structure
 
 ```
-sugarcane_harvestsing/
+sugarcane_harvesting/
 ├── backend/
 │   ├── app.py                 # Flask backend
 │   ├── schema.sql             # Database schema
@@ -22,20 +22,20 @@ sugarcane_harvestsing/
 ```bash
 # Create database and user
 sudo -u postgres psql << 'EOF'
-CREATE DATABASE sugarcane_harvests;
-CREATE USER sugarcane_users WITH PASSWORD 'secure_password_123';
-GRANT ALL PRIVILEGES ON DATABASE sugarcane_harvests TO sugarcane_users;
-ALTER DATABASE sugarcane_harvests OWNER TO sugarcane_users;
+CREATE DATABASE sugarcane_harvest;
+CREATE USER sugarcane_user WITH PASSWORD 'secure_password_123';
+GRANT ALL PRIVILEGES ON DATABASE sugarcane_harvest TO sugarcane_user;
+ALTER DATABASE sugarcane_harvest OWNER TO sugarcane_user;
 \q
 EOF
 
 # Initialize schema
-psql -U sugarcane_users -d sugarcane_harvests -f schema.sql
+psql -U sugarcane_user -d sugarcane_harvest -f schema.sql
 ```
 
 **Test Database:**
 ```bash
-psql -U sugarcane_users -d sugarcane_harvests -c "SELECT * FROM users;"
+psql -U sugarcane_user -d sugarcane_harvest -c "SELECT * FROM users;"
 ```
 
 ---
@@ -44,8 +44,8 @@ psql -U sugarcane_users -d sugarcane_harvests -c "SELECT * FROM users;"
 
 ```bash
 # Create project directory
-mkdir -p sugarcane_harvestsing/backend
-cd sugarcane_harvestsing/backend
+mkdir -p sugarcane_harvesting/backend
+cd sugarcane_harvesting/backend
 
 # Create virtual environment
 python3 -m venv venv
@@ -89,7 +89,7 @@ cd ../frontend
 
 **Terminal 1 - Backend:**
 ```bash
-cd sugarcane_harvestsing/backend
+cd sugarcane_harvesting/backend
 source venv/bin/activate  # Windows: venv\Scripts\activate
 python app.py
 ```
@@ -109,7 +109,7 @@ python app.py
 
 **Terminal 2 - Frontend:**
 ```bash
-cd sugarcane_harvestsing/frontend
+cd sugarcane_harvesting/frontend
 
 # Option 1: Python HTTP Server
 python -m http.server 3000
@@ -312,7 +312,7 @@ sudo systemctl status postgresql
 sudo systemctl start postgresql
 
 # Test DB connection
-psql -U sugarcane_users -d sugarcane_harvests -c "SELECT 1;"
+psql -U sugarcane_user -d sugarcane_harvest -c "SELECT 1;"
 
 # Check port 5000
 lsof -i :5000
@@ -331,9 +331,9 @@ curl http://localhost:5000/api/health
 ### Issue 3: Database errors
 ```bash
 # Recreate database
-sudo -u postgres psql -c "DROP DATABASE IF EXISTS sugarcane_harvests;"
-sudo -u postgres psql -c "CREATE DATABASE sugarcane_harvests;"
-psql -U sugarcane_users -d sugarcane_harvests -f schema.sql
+sudo -u postgres psql -c "DROP DATABASE IF EXISTS sugarcane_harvest;"
+sudo -u postgres psql -c "CREATE DATABASE sugarcane_harvest;"
+psql -U sugarcane_user -d sugarcane_harvest -f schema.sql
 ```
 
 ---

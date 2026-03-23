@@ -4,6 +4,7 @@ from psycopg_pool import ConnectionPool
 
 logger = logging.getLogger(__name__)
 
+DATABASE_URL = os.getenv("DATABASE_URL")
 DB_CONFIG = {
     "host": os.getenv("DB_HOST", "localhost"),
     "database": os.getenv("DB_NAME", "sugarcane_harvests"),
@@ -17,7 +18,10 @@ db_pool = None
 def init_db():
     global db_pool
     try:
-        conninfo = f"host={DB_CONFIG['host']} dbname={DB_CONFIG['database']} user={DB_CONFIG['user']} password={DB_CONFIG['password']} port={DB_CONFIG['port']}"
+        if DATABASE_URL:
+            conninfo = DATABASE_URL
+        else:
+            conninfo = f"host={DB_CONFIG['host']} dbname={DB_CONFIG['database']} user={DB_CONFIG['user']} password={DB_CONFIG['password']} port={DB_CONFIG['port']}"
         db_pool = ConnectionPool(conninfo, min_size=1, max_size=10)
         logger.info("✓ Database pool created")
     except Exception as e:
