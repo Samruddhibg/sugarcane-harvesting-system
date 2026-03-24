@@ -5,7 +5,7 @@ import FarmerDashboard from './components/FarmerDashboard';
 import MachineOwnerDashboard from './components/MachineOwnerDashboard';
 import FactoryDashboard from './components/FactoryDashboard';
 
-const API_BASE = 'http://localhost:5000/api';
+const API_BASE = 'https://sugarcane-harvesting-system-8.onrender.com/api';
 
 export default function App() {
     const [currentPage, setCurrentPage] = useState('home');
@@ -45,7 +45,7 @@ export default function App() {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${token}` }
             });
-        } catch(e) {
+        } catch (e) {
             console.error('Logout error', e);
         }
         localStorage.removeItem('token');
@@ -60,9 +60,9 @@ export default function App() {
     }
 
     if (currentPage === 'login' || currentPage === 'signup') {
-        return <AuthPage 
-            mode={authMode} 
-            role={role} 
+        return <AuthPage
+            mode={authMode}
+            role={role}
             onAuth={handleAuth}
             onNavigate={handleNavigate}
         />;

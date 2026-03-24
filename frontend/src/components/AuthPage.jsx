@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-const API_BASE = 'http://localhost:5000/api';
+const API_BASE = 'https://sugarcane-harvesting-system-8.onrender.com/api';
 
 export default function AuthPage({ mode, role, onAuth, onNavigate }) {
     const [formData, setFormData] = useState({
@@ -19,7 +19,7 @@ export default function AuthPage({ mode, role, onAuth, onNavigate }) {
 
         try {
             const endpoint = mode === 'signup' ? '/auth/signup' : '/auth/login';
-            const payload = mode === 'signup' 
+            const payload = mode === 'signup'
                 ? { ...formData, role }
                 : { phone: formData.phone, password: formData.password };
 
@@ -59,14 +59,14 @@ export default function AuthPage({ mode, role, onAuth, onNavigate }) {
                                     type="text"
                                     required
                                     value={formData.name}
-                                    onChange={(e) => setFormData({...formData, name: e.target.value})}
+                                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                                 />
                             </div>
                             <div className="form-group">
                                 <label>Factory</label>
                                 <select
                                     value={formData.factory_id}
-                                    onChange={(e) => setFormData({...formData, factory_id: e.target.value})}
+                                    onChange={(e) => setFormData({ ...formData, factory_id: e.target.value })}
                                 >
                                     <option value="1">Factory Alpha (North Zone)</option>
                                     <option value="2">Factory Beta (South Zone)</option>
@@ -85,7 +85,7 @@ export default function AuthPage({ mode, role, onAuth, onNavigate }) {
                             type="tel"
                             required
                             value={formData.phone}
-                            onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                         />
                     </div>
                     <div className="form-group">
@@ -94,7 +94,7 @@ export default function AuthPage({ mode, role, onAuth, onNavigate }) {
                             type="password"
                             required
                             value={formData.password}
-                            onChange={(e) => setFormData({...formData, password: e.target.value})}
+                            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                         />
                     </div>
                     <button type="submit" className="btn-submit" disabled={loading}>

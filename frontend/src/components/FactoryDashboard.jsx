@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Chart from 'chart.js/auto';
 
-const API_BASE = 'http://localhost:5000/api';
+const API_BASE = 'https://sugarcane-harvesting-system-8.onrender.com/api';
 
 export default function FactoryDashboard({ user, token, onLogout }) {
     const [activeTab, setActiveTab] = useState('home');
@@ -20,7 +20,7 @@ export default function FactoryDashboard({ user, token, onLogout }) {
             });
             const data = await response.json();
             setDashboardData(data);
-            
+
             // Create chart after data loads if on home tab
             if (activeTab === 'home' && data.chart_data) {
                 setTimeout(() => createChart(data.chart_data), 100);
@@ -41,7 +41,7 @@ export default function FactoryDashboard({ user, token, onLogout }) {
     const createChart = (chartData) => {
         const ctx = document.getElementById('assignmentChart');
         if (!ctx) return;
-        
+
         if (chartRef.current) {
             chartRef.current.destroy();
         }
@@ -76,19 +76,19 @@ export default function FactoryDashboard({ user, token, onLogout }) {
                 <div className="navbar-brand">🏭 Factory Dashboard</div>
                 <div className="navbar-menu">
                     <button className={`nav-link ${activeTab === 'home' ? 'active' : ''}`}
-                            onClick={() => setActiveTab('home')}>
+                        onClick={() => setActiveTab('home')}>
                         Home
                     </button>
                     <button className={`nav-link ${activeTab === 'farmers' ? 'active' : ''}`}
-                            onClick={() => setActiveTab('farmers')}>
+                        onClick={() => setActiveTab('farmers')}>
                         All Farmers
                     </button>
                     <button className={`nav-link ${activeTab === 'machines' ? 'active' : ''}`}
-                            onClick={() => setActiveTab('machines')}>
+                        onClick={() => setActiveTab('machines')}>
                         All Machines
                     </button>
                     <button className={`nav-link ${activeTab === 'profile' ? 'active' : ''}`}
-                            onClick={() => setActiveTab('profile')}>
+                        onClick={() => setActiveTab('profile')}>
                         Profile
                     </button>
                     <button className="btn-logout" onClick={onLogout}>Logout</button>
@@ -98,7 +98,7 @@ export default function FactoryDashboard({ user, token, onLogout }) {
             {activeTab === 'home' && dashboardData && (
                 <div className="hero">
                     <h2 className="hero-title">{dashboardData.factory?.name || 'Factory'}</h2>
-                    
+
                     <div className="stats-grid">
                         <div className="stat-card">
                             <h3>{dashboardData.stats?.total_farmers || 0}</h3>
@@ -119,11 +119,11 @@ export default function FactoryDashboard({ user, token, onLogout }) {
                     </div>
 
                     <div className="data-table">
-                        <h3 style={{padding: '1rem'}}>
+                        <h3 style={{ padding: '1rem' }}>
                             📊 Capacity: {dashboardData.stats?.capacity_used_percent?.toFixed(1) || 0}% Used
                         </h3>
-                        <div style={{padding: '1rem'}}>
-                            <div style={{background: '#f0f0f0', borderRadius: '10px', height: '30px', overflow: 'hidden'}}>
+                        <div style={{ padding: '1rem' }}>
+                            <div style={{ background: '#f0f0f0', borderRadius: '10px', height: '30px', overflow: 'hidden' }}>
                                 <div style={{
                                     background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                                     height: '100%',
@@ -131,7 +131,7 @@ export default function FactoryDashboard({ user, token, onLogout }) {
                                     transition: 'width 0.3s'
                                 }}></div>
                             </div>
-                            <p style={{marginTop: '0.5rem', color: '#666'}}>
+                            <p style={{ marginTop: '0.5rem', color: '#666' }}>
                                 {(dashboardData.stats?.today_production || 0).toLocaleString()} kg / {(dashboardData.stats?.capacity || 0).toLocaleString()} kg
                             </p>
                         </div>
@@ -143,7 +143,7 @@ export default function FactoryDashboard({ user, token, onLogout }) {
                     </div>
 
                     <div className="data-table">
-                        <h3 style={{padding: '1rem'}}>📋 Today's Assignments</h3>
+                        <h3 style={{ padding: '1rem' }}>📋 Today's Assignments</h3>
                         <table>
                             <thead>
                                 <tr>
@@ -194,9 +194,8 @@ export default function FactoryDashboard({ user, token, onLogout }) {
                                         <td>{farmer.f_crop}</td>
                                         <td>{farmer.f_planting_date}</td>
                                         <td>
-                                            <span className={`badge badge-${
-                                                farmer.status === 'assigned' ? 'success' : 'warning'
-                                            }`}>
+                                            <span className={`badge badge-${farmer.status === 'assigned' ? 'success' : 'warning'
+                                                }`}>
                                                 {farmer.status}
                                             </span>
                                         </td>
@@ -230,9 +229,8 @@ export default function FactoryDashboard({ user, token, onLogout }) {
                                         <td>{machine.m_phone_number}</td>
                                         <td>{machine.m_district}</td>
                                         <td>
-                                            <span className={`badge badge-${
-                                                machine.m_status === 'idle' ? 'success' : 'danger'
-                                            }`}>
+                                            <span className={`badge badge-${machine.m_status === 'idle' ? 'success' : 'danger'
+                                                }`}>
                                                 {machine.m_status}
                                             </span>
                                         </td>
@@ -247,11 +245,11 @@ export default function FactoryDashboard({ user, token, onLogout }) {
             {activeTab === 'profile' && (
                 <div className="hero">
                     <h2 className="hero-title">Admin Profile</h2>
-                    <div style={{background: 'white', padding: '2rem', borderRadius: '12px', maxWidth: '400px', margin: '2rem auto', textAlign: 'left', boxShadow: '0 4px 6px rgba(0,0,0,0.1)'}}>
-                        <div style={{marginBottom: '1rem'}}><strong style={{color: '#667eea'}}>Admin Name:</strong> <span style={{fontSize: '1.1rem'}}>{user.name}</span></div>
-                        <div style={{marginBottom: '1rem'}}><strong style={{color: '#667eea'}}>Phone Number:</strong> <span style={{fontSize: '1.1rem'}}>{user.phone}</span></div>
-                        <div style={{marginBottom: '1rem'}}><strong style={{color: '#667eea'}}>Role:</strong> <span style={{fontSize: '1.1rem', textTransform: 'capitalize'}}>{user.role}</span></div>
-                        <div style={{marginBottom: '1rem'}}><strong style={{color: '#667eea'}}>Managed Factory ID:</strong> <span style={{fontSize: '1.1rem'}}>{user.factory_id}</span></div>
+                    <div style={{ background: 'white', padding: '2rem', borderRadius: '12px', maxWidth: '400px', margin: '2rem auto', textAlign: 'left', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
+                        <div style={{ marginBottom: '1rem' }}><strong style={{ color: '#667eea' }}>Admin Name:</strong> <span style={{ fontSize: '1.1rem' }}>{user.name}</span></div>
+                        <div style={{ marginBottom: '1rem' }}><strong style={{ color: '#667eea' }}>Phone Number:</strong> <span style={{ fontSize: '1.1rem' }}>{user.phone}</span></div>
+                        <div style={{ marginBottom: '1rem' }}><strong style={{ color: '#667eea' }}>Role:</strong> <span style={{ fontSize: '1.1rem', textTransform: 'capitalize' }}>{user.role}</span></div>
+                        <div style={{ marginBottom: '1rem' }}><strong style={{ color: '#667eea' }}>Managed Factory ID:</strong> <span style={{ fontSize: '1.1rem' }}>{user.factory_id}</span></div>
                     </div>
                 </div>
             )}
