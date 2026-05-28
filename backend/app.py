@@ -5,6 +5,10 @@ Flask API + PostgreSQL
 """
 
 import os
+import sys
+from dotenv import load_dotenv
+load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '.env'))
+
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from datetime import datetime, timedelta, date
@@ -17,11 +21,12 @@ from apscheduler.schedulers.background import BackgroundScheduler
 import hashlib
 import secrets
 import urllib.parse
+from utils import generate_jwt_token, verify_token, get_authenticated_user, get_auth_token
 
 # ==================== CONFIGURATION ====================
 
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.DEBUG,
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
@@ -42,7 +47,7 @@ else:
     DB_CONFIG = {
         "host": os.getenv("DB_HOST", "localhost"),
         "database": os.getenv("DB_NAME", "sugarcane_harvest"),
-        "user": os.getenv("DB_USER", "sugarcane_user"),
+        "user": os.getenv("DB_USER", "sugarcane_users"),
         "password": os.getenv("DB_PASSWORD", "secure_password_123"),
         "port": int(os.getenv("DB_PORT", 5432))
     }
@@ -60,26 +65,221 @@ CORS(app)  # Enable CORS for React frontend
 
 try:
     db_pool = pool.SimpleConnectionPool(1, 10, **DB_CONFIG)
-    logger.info(" Database pool created")
+    logger.info("Database pool created successfully")
 except Exception as e:
     logger.error(f"DB pool failed: {e}")
     db_pool = None
 
 def get_db_conn():
+    if db_pool is None:
+        raise Exception("Database connection pool is not initialized. Check PostgreSQL is running and credentials are correct.")
     return db_pool.getconn()
 
 def release_db_conn(conn):
-    db_pool.putconn(conn)
+    if db_pool is not None and conn is not None:
+        db_pool.putconn(conn)
+
+# ==================== AUTO-CREATE TABLES ====================
+
+def init_tables():
+    """Automatically create tables if they don't exist."""
+    if db_pool is None:
+        logger.error("Cannot init tables - no database connection")
+        return
+    conn = None
+    try:
+        conn = get_db_conn()
+        cur = conn.cursor()
+        
+        # Check if tables exist
+        cur.execute("""
+            SELECT table_name FROM information_schema.tables 
+            WHERE table_schema = 'public' AND table_name = 'users';
+        """)
+        if cur.fetchone():
+            logger.info("Database tables already exist - skipping init")
+            cur.close()
+            return
+        
+        logger.info("Tables not found - creating database schema...")
+        
+        # Create all tables
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS factories (
+                factory_id SERIAL PRIMARY KEY,
+                name VARCHAR(255) NOT NULL,
+                location VARCHAR(255) NOT NULL,
+                daily_capacity INT NOT NULL
+            );
+            
+            INSERT INTO factories (factory_id, name, location, daily_capacity) VALUES
+            (1, 'Factory Alpha', 'North Zone', 500000),
+            (2, 'Factory Beta', 'South Zone', 750000),
+            (3, 'Factory Gamma', 'East Zone', 600000),
+            (4, 'Factory Delta', 'West Zone', 400000),
+            (5, 'Factory Epsilon', 'Central Zone', 550000),
+            (6, 'Factory Zeta', 'North-East Zone', 480000),
+            (7, 'Factory Eta', 'South-West Zone', 520000)
+            ON CONFLICT (factory_id) DO NOTHING;
+            
+            CREATE TABLE IF NOT EXISTS users (
+                user_id SERIAL PRIMARY KEY,
+                name VARCHAR(255) NOT NULL,
+                phone VARCHAR(20) UNIQUE NOT NULL,
+                password_hash VARCHAR(255) NOT NULL,
+                role VARCHAR(20) NOT NULL,
+                factory_id INT,
+                session_token TEXT,
+                last_login TIMESTAMP,
+                created_at TIMESTAMP DEFAULT NOW(),
+                updated_at TIMESTAMP DEFAULT NOW(),
+                CONSTRAINT fk_users_factory FOREIGN KEY (factory_id) REFERENCES factories(factory_id)
+            );
+            
+            CREATE INDEX IF NOT EXISTS idx_users_phone ON users(phone);
+            CREATE INDEX IF NOT EXISTS idx_users_token ON users(session_token);
+            CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);
+            
+            CREATE TABLE IF NOT EXISTS f_register (
+                f_id SERIAL PRIMARY KEY,
+                user_id INT NOT NULL REFERENCES users(user_id),
+                f_name VARCHAR(255) NOT NULL,
+                f_phone_number VARCHAR(20) NOT NULL,
+                f_factory INT NOT NULL REFERENCES factories(factory_id),
+                f_address TEXT NOT NULL,
+                f_district VARCHAR(100) NOT NULL,
+                f_planting_date DATE NOT NULL,
+                f_crop INT NOT NULL,
+                f_submission_date DATE NOT NULL,
+                status VARCHAR(50) DEFAULT 'pending',
+                created_at TIMESTAMP DEFAULT NOW(),
+                updated_at TIMESTAMP DEFAULT NOW()
+            );
+            
+            CREATE INDEX IF NOT EXISTS idx_f_user ON f_register(user_id);
+            CREATE INDEX IF NOT EXISTS idx_f_factory ON f_register(f_factory);
+            CREATE INDEX IF NOT EXISTS idx_f_status ON f_register(status);
+            CREATE INDEX IF NOT EXISTS idx_f_planting ON f_register(f_planting_date);
+            
+            CREATE TABLE IF NOT EXISTS m_register (
+                m_id SERIAL PRIMARY KEY,
+                user_id INT NOT NULL REFERENCES users(user_id),
+                m_name VARCHAR(255) NOT NULL,
+                m_phone_number VARCHAR(20) NOT NULL,
+                m_factory INT NOT NULL REFERENCES factories(factory_id),
+                m_address TEXT NOT NULL,
+                m_district VARCHAR(100) NOT NULL,
+                m_status VARCHAR(20) DEFAULT 'idle',
+                created_at TIMESTAMP DEFAULT NOW(),
+                updated_at TIMESTAMP DEFAULT NOW()
+            );
+            
+            CREATE INDEX IF NOT EXISTS idx_m_user ON m_register(user_id);
+            CREATE INDEX IF NOT EXISTS idx_m_factory ON m_register(m_factory);
+            CREATE INDEX IF NOT EXISTS idx_m_status ON m_register(m_status);
+            
+            CREATE TABLE IF NOT EXISTS assignment_requests (
+                assignment_request_id SERIAL PRIMARY KEY,
+                factory_id INT NOT NULL REFERENCES factories(factory_id),
+                farmer_id INT NOT NULL REFERENCES f_register(f_id),
+                machine_id INT NOT NULL REFERENCES m_register(m_id),
+                scheduled_date DATE NOT NULL,
+                estimated_harvest_days INT NOT NULL,
+                estimated_completion DATE NOT NULL,
+                production_kg DECIMAL(10, 2) NOT NULL,
+                priority VARCHAR(20) NOT NULL,
+                status VARCHAR(20) DEFAULT 'pending',
+                request_sent_at TIMESTAMP NOT NULL,
+                expires_at TIMESTAMP NOT NULL,
+                updated_at TIMESTAMP DEFAULT NOW()
+            );
+            
+            CREATE INDEX IF NOT EXISTS idx_ar_farmer ON assignment_requests(farmer_id);
+            CREATE INDEX IF NOT EXISTS idx_ar_machine ON assignment_requests(machine_id);
+            CREATE INDEX IF NOT EXISTS idx_ar_status ON assignment_requests(status);
+            CREATE INDEX IF NOT EXISTS idx_ar_expires ON assignment_requests(expires_at);
+            
+            CREATE TABLE IF NOT EXISTS confirmed_assignments (
+                assignment_id SERIAL PRIMARY KEY,
+                factory_id INT NOT NULL REFERENCES factories(factory_id),
+                farmer_id INT NOT NULL REFERENCES f_register(f_id),
+                machine_id INT NOT NULL REFERENCES m_register(m_id),
+                assigned_date DATE NOT NULL,
+                estimated_harvest_days INT NOT NULL,
+                estimated_completion DATE NOT NULL,
+                production_kg DECIMAL(10, 2) NOT NULL,
+                status VARCHAR(20) DEFAULT 'assigned',
+                actual_completion_date DATE,
+                created_at TIMESTAMP DEFAULT NOW(),
+                updated_at TIMESTAMP DEFAULT NOW()
+            );
+            
+            CREATE INDEX IF NOT EXISTS idx_ca_farmer ON confirmed_assignments(farmer_id);
+            CREATE INDEX IF NOT EXISTS idx_ca_machine ON confirmed_assignments(machine_id);
+            CREATE INDEX IF NOT EXISTS idx_ca_factory ON confirmed_assignments(factory_id);
+            CREATE INDEX IF NOT EXISTS idx_ca_date ON confirmed_assignments(assigned_date);
+            
+            CREATE TABLE IF NOT EXISTS notifications (
+                notification_id SERIAL PRIMARY KEY,
+                user_id INT NOT NULL REFERENCES users(user_id),
+                user_type VARCHAR(20) NOT NULL,
+                message TEXT NOT NULL,
+                sent_at TIMESTAMP DEFAULT NOW(),
+                read_at TIMESTAMP
+            );
+            
+            CREATE INDEX IF NOT EXISTS idx_notif_user ON notifications(user_id);
+            CREATE INDEX IF NOT EXISTS idx_notif_sent ON notifications(sent_at);
+            
+            CREATE OR REPLACE FUNCTION update_timestamp()
+            RETURNS TRIGGER AS $$
+            BEGIN
+                NEW.updated_at = NOW();
+                RETURN NEW;
+            END;
+            $$ LANGUAGE plpgsql;
+            
+            DROP TRIGGER IF EXISTS trg_users_timestamp ON users;
+            CREATE TRIGGER trg_users_timestamp BEFORE UPDATE ON users
+            FOR EACH ROW EXECUTE FUNCTION update_timestamp();
+            
+            DROP TRIGGER IF EXISTS trg_f_register_timestamp ON f_register;
+            CREATE TRIGGER trg_f_register_timestamp BEFORE UPDATE ON f_register
+            FOR EACH ROW EXECUTE FUNCTION update_timestamp();
+            
+            DROP TRIGGER IF EXISTS trg_m_register_timestamp ON m_register;
+            CREATE TRIGGER trg_m_register_timestamp BEFORE UPDATE ON m_register
+            FOR EACH ROW EXECUTE FUNCTION update_timestamp();
+            
+            DROP TRIGGER IF EXISTS trg_assignment_requests_timestamp ON assignment_requests;
+            CREATE TRIGGER trg_assignment_requests_timestamp BEFORE UPDATE ON assignment_requests
+            FOR EACH ROW EXECUTE FUNCTION update_timestamp();
+            
+            DROP TRIGGER IF EXISTS trg_confirmed_assignments_timestamp ON confirmed_assignments;
+            CREATE TRIGGER trg_confirmed_assignments_timestamp BEFORE UPDATE ON confirmed_assignments
+            FOR EACH ROW EXECUTE FUNCTION update_timestamp();
+        """)
+        
+        conn.commit()
+        logger.info("All database tables created successfully!")
+        cur.close()
+        
+    except Exception as e:
+        logger.error(f"Table initialization failed: {e}")
+        if conn:
+            conn.rollback()
+    finally:
+        if conn:
+            release_db_conn(conn)
+
+# Run table init on startup
+init_tables()
 
 # ==================== AUTHENTICATION ====================
 
 def hash_password(password):
     """Hash password using SHA-256"""
     return hashlib.sha256(password.encode()).hexdigest()
-
-def generate_token():
-    """Generate random session token"""
-    return secrets.token_hex(32)
 
 @app.route("/api/auth/signup", methods=["POST"])
 def signup():
@@ -103,18 +303,23 @@ def signup():
         if cur.fetchone():
             return jsonify({"error": "Phone number already registered"}), 409
         
-        # Create user
         password_hash = hash_password(data['password'])
-        token = generate_token()
-        
         cur.execute("""
-            INSERT INTO users (name, phone, password_hash, role, factory_id, session_token)
-            VALUES (%s, %s, %s, %s, %s, %s)
+            INSERT INTO users (name, phone, password_hash, role, factory_id)
+            VALUES (%s, %s, %s, %s, %s)
             RETURNING user_id, name, role, factory_id
-        """, (data['name'], data['phone'], password_hash, data['role'], 
-              data['factory_id'], token))
+        """, (data['name'], data['phone'], password_hash, data['role'], data['factory_id']))
         
         user = cur.fetchone()
+        if not user:
+            raise Exception("Failed to create user")
+
+        token = generate_jwt_token(user[0], user[2], user[3])
+        cur.execute("""
+            UPDATE users SET session_token = %s, last_login = NOW()
+            WHERE user_id = %s
+        """, (token, user[0]))
+        
         conn.commit()
         cur.close()
         
@@ -165,8 +370,7 @@ def login():
         if not user:
             return jsonify({"error": "Invalid credentials"}), 401
         
-        # Generate new token
-        token = generate_token()
+        token = generate_jwt_token(user['user_id'], user['role'], user['factory_id'])
         cur.execute("""
             UPDATE users SET session_token = %s, last_login = NOW()
             WHERE user_id = %s
@@ -175,7 +379,7 @@ def login():
         conn.commit()
         cur.close()
         
-        logger.info(f" Login: {user['name']} ({user['role']})")
+        logger.info(f"Login: {user['name']} ({user['role']})")
         
         return jsonify({
             "status": "success",
@@ -197,7 +401,7 @@ def login():
 @app.route("/api/auth/logout", methods=["POST"])
 def logout():
     """User logout"""
-    token = request.headers.get('Authorization', '').replace('Bearer ', '')
+    token = get_auth_token(request)
     
     if not token:
         return jsonify({"error": "No token provided"}), 401
@@ -224,39 +428,14 @@ def logout():
         if conn:
             release_db_conn(conn)
 
-def verify_token(token):
-    """Verify session token and return user"""
-    conn = None
-    try:
-        conn = get_db_conn()
-        cur = conn.cursor(cursor_factory=RealDictCursor)
-        
-        cur.execute("""
-            SELECT user_id, name, phone, role, factory_id
-            FROM users
-            WHERE session_token = %s
-        """, (token,))
-        
-        user = cur.fetchone()
-        cur.close()
-        return user
-        
-    except Exception as e:
-        logger.error(f"Token verification error: {e}")
-        return None
-    finally:
-        if conn:
-            release_db_conn(conn)
-
 # ==================== FARMER ENDPOINTS ====================
 
 @app.route("/api/farmer/register-crop", methods=["POST"])
 def farmer_register_crop():
     """Farmer registers a new crop"""
-    token = request.headers.get('Authorization', '').replace('Bearer ', '')
-    user = verify_token(token)
+    user = get_authenticated_user(request, 'farmer')
     
-    if not user or user['role'] != 'farmer':
+    if not user:
         return jsonify({"error": "Unauthorized"}), 401
     
     data = request.json
@@ -306,10 +485,9 @@ def farmer_register_crop():
 @app.route("/api/farmer/dashboard", methods=["GET"])
 def farmer_dashboard():
     """Get farmer dashboard data"""
-    token = request.headers.get('Authorization', '').replace('Bearer ', '')
-    user = verify_token(token)
+    user = get_authenticated_user(request, 'farmer')
     
-    if not user or user['role'] != 'farmer':
+    if not user:
         return jsonify({"error": "Unauthorized"}), 401
     
     conn = None
@@ -385,10 +563,9 @@ def farmer_dashboard():
 @app.route("/api/farmer/request/<int:request_id>/accept", methods=["POST"])
 def farmer_accept_request(request_id):
     """Farmer accepts assignment request"""
-    token = request.headers.get('Authorization', '').replace('Bearer ', '')
-    user = verify_token(token)
+    user = get_authenticated_user(request, 'farmer')
     
-    if not user or user['role'] != 'farmer':
+    if not user:
         return jsonify({"error": "Unauthorized"}), 401
     
     conn = None
@@ -462,10 +639,9 @@ def farmer_accept_request(request_id):
 @app.route("/api/farmer/request/<int:request_id>/reject", methods=["POST"])
 def farmer_reject_request(request_id):
     """Farmer rejects assignment request"""
-    token = request.headers.get('Authorization', '').replace('Bearer ', '')
-    user = verify_token(token)
+    user = get_authenticated_user(request, 'farmer')
     
-    if not user or user['role'] != 'farmer':
+    if not user:
         return jsonify({"error": "Unauthorized"}), 401
     
     conn = None
@@ -517,10 +693,9 @@ def farmer_reject_request(request_id):
 @app.route("/api/machine/register", methods=["POST"])
 def machine_owner_register_machine():
     """Machine owner registers a machine"""
-    token = request.headers.get('Authorization', '').replace('Bearer ', '')
-    user = verify_token(token)
+    user = get_authenticated_user(request, 'machine_owner')
     
-    if not user or user['role'] != 'machine_owner':
+    if not user:
         return jsonify({"error": "Unauthorized"}), 401
     
     data = request.json
@@ -569,10 +744,9 @@ def machine_owner_register_machine():
 @app.route("/api/machine/dashboard", methods=["GET"])
 def machine_owner_dashboard():
     """Get machine owner dashboard"""
-    token = request.headers.get('Authorization', '').replace('Bearer ', '')
-    user = verify_token(token)
+    user = get_authenticated_user(request, 'machine_owner')
     
-    if not user or user['role'] != 'machine_owner':
+    if not user:
         return jsonify({"error": "Unauthorized"}), 401
     
     conn = None
@@ -635,10 +809,9 @@ def machine_owner_dashboard():
 @app.route("/api/machine/<int:machine_id>/status", methods=["PUT"])
 def update_machine_status(machine_id):
     """Machine owner updates machine status (busy to idle after harvest)"""
-    token = request.headers.get('Authorization', '').replace('Bearer ', '')
-    user = verify_token(token)
+    user = get_authenticated_user(request, 'machine_owner')
     
-    if not user or user['role'] != 'machine_owner':
+    if not user:
         return jsonify({"error": "Unauthorized"}), 401
     
     data = request.json
@@ -697,10 +870,9 @@ def update_machine_status(machine_id):
 @app.route("/api/factory/dashboard", methods=["GET"])
 def factory_dashboard():
     """Get factory dashboard with analytics"""
-    token = request.headers.get('Authorization', '').replace('Bearer ', '')
-    user = verify_token(token)
+    user = get_authenticated_user(request, 'factory_admin')
     
-    if not user or user['role'] != 'factory_admin':
+    if not user:
         return jsonify({"error": "Unauthorized"}), 401
     
     conn = None
@@ -818,14 +990,14 @@ def factory_dashboard():
 @app.route("/api/factory/trigger-assignment", methods=["POST"])
 def factory_trigger_assignment():
     """Factory admin manually triggers assignment job"""
-    token = request.headers.get('Authorization', '').replace('Bearer ', '')
-    user = verify_token(token)
+    user = get_authenticated_user(request, 'factory_admin')
     
-    if not user or user['role'] != 'factory_admin':
+    if not user:
         return jsonify({"error": "Unauthorized"}), 401
     
     try:
-        daily_assignment_job()
+        from services.scheduler import schedule_harvesting_job
+        schedule_harvesting_job()
         return jsonify({"status": "success", "message": "Assignment job completed"}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -835,8 +1007,7 @@ def factory_trigger_assignment():
 @app.route("/api/notifications", methods=["GET"])
 def get_notifications():
     """Get user notifications"""
-    token = request.headers.get('Authorization', '').replace('Bearer ', '')
-    user = verify_token(token)
+    user = get_authenticated_user(request)
     
     if not user:
         return jsonify({"error": "Unauthorized"}), 401
@@ -872,139 +1043,13 @@ def get_notifications():
         if conn:
             release_db_conn(conn)
 
-# ==================== ASSIGNMENT LOGIC (from previous code) ====================
-
-factory_queues = {
-    fid: {
-        "mature": deque(),
-        "immature": deque(),
-        "nearly_mature": deque(),
-        "final": deque()
-    } 
-    for fid in FACTORY_IDS
-}
-
-def daily_assignment_job():
-    """Main assignment job - simplified version"""
-    logger.info("Running assignment job...")
-    
-    conn = None
-    try:
-        conn = get_db_conn()
-        cur = conn.cursor(cursor_factory=RealDictCursor)
-        
-        # Get pending farmers
-        cur.execute("""
-            SELECT f.*, (CURRENT_DATE - f.f_planting_date) as days_old
-            FROM f_register f
-            WHERE f.status = 'pending'
-            ORDER BY f.f_submission_date
-        """)
-        farmers = cur.fetchall()
-        
-        # Get idle machines
-        cur.execute("""
-            SELECT * FROM m_register
-            WHERE m_status = 'idle'
-        """)
-        machines = cur.fetchall()
-        
-        # Group by factory
-        machines_by_factory = {}
-        for m in machines:
-            if m['m_factory'] not in machines_by_factory:
-                machines_by_factory[m['m_factory']] = []
-            machines_by_factory[m['m_factory']].append(m)
-        
-        assigned_count = 0
-        
-        # Assign mature farmers first
-        for farmer in farmers:
-            if farmer['days_old'] >= MATURITY_DAYS:
-                factory_id = farmer['f_factory']
-                if factory_id in machines_by_factory and machines_by_factory[factory_id]:
-                    machine = machines_by_factory[factory_id].pop(0)
-                    
-                    # Create assignment request
-                    cur.execute("""
-                        INSERT INTO assignment_requests (
-                            factory_id, farmer_id, machine_id, scheduled_date,
-                            estimated_harvest_days, estimated_completion,
-                            production_kg, priority, status, request_sent_at, expires_at
-                        ) VALUES (%s, %s, %s, CURRENT_DATE, 5, CURRENT_DATE + 5, %s, 'mature', 'pending', NOW(), NOW() + INTERVAL '12 hours')
-                    """, (factory_id, farmer['f_id'], machine['m_id'], farmer['f_crop'] * 1000))
-                    
-                    # Reserve machine
-                    cur.execute("""
-                        UPDATE m_register SET m_status = 'reserved'
-                        WHERE m_id = %s
-                    """, (machine['m_id'],))
-                    
-                    assigned_count += 1
-        
-        conn.commit()
-        cur.close()
-        
-        logger.info(f" Assignment job complete: {assigned_count} assignments created")
-        
-    except Exception as e:
-        logger.error(f" Assignment job failed: {e}")
-        if conn:
-            conn.rollback()
-    finally:
-        if conn:
-            release_db_conn(conn)
-
-def check_expired_requests():
-    """Check and expire old requests"""
-    conn = None
-    try:
-        conn = get_db_conn()
-        cur = conn.cursor()
-        
-        cur.execute("""
-            UPDATE assignment_requests
-            SET status = 'expired'
-            WHERE status = 'pending' AND expires_at < NOW()
-            RETURNING machine_id
-        """)
-        
-        expired = cur.fetchall()
-        
-        for row in expired:
-            cur.execute("""
-                UPDATE m_register SET m_status = 'idle'
-                WHERE m_id = %s
-            """, (row[0],))
-        
-        conn.commit()
-        cur.close()
-        
-        if expired:
-            logger.info(f"Expired {len(expired)} requests")
-        
-    except Exception as e:
-        logger.error(f"Expiry check error: {e}")
-        if conn:
-            conn.rollback()
-    finally:
-        if conn:
-            release_db_conn(conn)
+# Assignment scheduling is handled by backend/services/scheduler.py
+# Use the scheduler implementation there. This file no longer contains the assignment logic.
 
 # ==================== SCHEDULER ====================
 
-def start_scheduler():
-    """Start background jobs"""
-    scheduler = BackgroundScheduler()
-    
-    scheduler.add_job(daily_assignment_job, 'interval', hours=24, 
-                      next_run_time=datetime.now() + timedelta(seconds=30))
-    
-    scheduler.add_job(check_expired_requests, 'interval', hours=1,
-                      next_run_time=datetime.now() + timedelta(minutes=5))
-    
-    scheduler.start()
-    logger.info("Scheduler started")
+# Use external scheduler implementation
+from services.scheduler import start_scheduler as start_background_scheduler
 
 # ==================== HEALTH CHECK ====================
 
@@ -1016,9 +1061,20 @@ def health():
 # ==================== MAIN ====================
 
 if os.getenv("FLASK_ENV") != "development":
-    start_scheduler()
+    start_background_scheduler()
 
 if __name__ == "__main__":
+    if len(sys.argv) > 1:
+        cmd = sys.argv[1].lower()
+        if cmd in ["schedule", "run-scheduler", "assign"]:
+            from services.scheduler import schedule_harvesting_job
+            schedule_harvesting_job()
+            sys.exit(0)
+        if cmd in ["expire", "expire-requests"]:
+            from services.scheduler import expire_pending_requests
+            expire_pending_requests()
+            sys.exit(0)
+
     logger.info("\n" + "="*70)
     logger.info("Sugarcane Harvesting System")
     logger.info("="*70)

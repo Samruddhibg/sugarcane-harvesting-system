@@ -3,7 +3,7 @@ import logging
 from datetime import date, datetime
 from psycopg.rows import dict_row
 from db import get_db_conn, release_db_conn
-from utils import verify_token
+from utils import verify_token, get_authenticated_user
 
 machine_bp = Blueprint('machine', __name__)
 logger = logging.getLogger(__name__)
@@ -11,10 +11,9 @@ logger = logging.getLogger(__name__)
 @machine_bp.route("/register", methods=["POST"])
 def register_machine():
     """Machine owner registers a machine"""
-    token = request.headers.get('Authorization', '').replace('Bearer ', '')
-    user = verify_token(token)
+    user = get_authenticated_user(request, 'machine_owner')
     
-    if not user or user['role'] != 'machine_owner':
+    if not user:
         return jsonify({"error": "Unauthorized"}), 401
     
     data = request.json
@@ -63,10 +62,9 @@ def register_machine():
 @machine_bp.route("/dashboard", methods=["GET"])
 def dashboard():
     """Get machine owner dashboard"""
-    token = request.headers.get('Authorization', '').replace('Bearer ', '')
-    user = verify_token(token)
+    user = get_authenticated_user(request, 'machine_owner')
     
-    if not user or user['role'] != 'machine_owner':
+    if not user:
         return jsonify({"error": "Unauthorized"}), 401
     
     conn = None
@@ -129,10 +127,9 @@ def dashboard():
 @machine_bp.route("/<int:machine_id>/status", methods=["PUT"])
 def update_machine_status(machine_id):
     """Machine owner updates machine status (busy to idle after harvest)"""
-    token = request.headers.get('Authorization', '').replace('Bearer ', '')
-    user = verify_token(token)
+    user = get_authenticated_user(request, 'machine_owner')
     
-    if not user or user['role'] != 'machine_owner':
+    if not user:
         return jsonify({"error": "Unauthorized"}), 401
     
     data = request.json

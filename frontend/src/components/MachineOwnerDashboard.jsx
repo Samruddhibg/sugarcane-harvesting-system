@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-const API_BASE = 'https://sugarcane-harvesting-system-8.onrender.com/api';
+const API_BASE = 'http://localhost:5000/api';
 
 export default function MachineOwnerDashboard({ user, token, onLogout }) {
     const [activeTab, setActiveTab] = useState('home');

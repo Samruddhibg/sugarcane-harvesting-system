@@ -5,7 +5,7 @@ import FarmerDashboard from './components/FarmerDashboard';
 import MachineOwnerDashboard from './components/MachineOwnerDashboard';
 import FactoryDashboard from './components/FactoryDashboard';
 
-const API_BASE = 'https://sugarcane-harvesting-system-8.onrender.com/api';
+const API_BASE = 'http://localhost:5000/api';
 
 export default function App() {
     const [currentPage, setCurrentPage] = useState('home');

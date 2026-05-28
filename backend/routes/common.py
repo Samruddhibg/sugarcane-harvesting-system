@@ -3,7 +3,7 @@ from datetime import datetime
 import logging
 from psycopg.rows import dict_row
 from db import get_db_conn, release_db_conn
-from utils import verify_token
+from utils import verify_token, get_authenticated_user
 
 common_bp = Blueprint('common', __name__)
 logger = logging.getLogger(__name__)
@@ -11,8 +11,7 @@ logger = logging.getLogger(__name__)
 @common_bp.route("/notifications", methods=["GET"])
 def get_notifications():
     """Get user notifications"""
-    token = request.headers.get('Authorization', '').replace('Bearer ', '')
-    user = verify_token(token)
+    user = get_authenticated_user(request)
     
     if not user:
         return jsonify({"error": "Unauthorized"}), 401

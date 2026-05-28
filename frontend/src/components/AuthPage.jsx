@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-const API_BASE = 'https://sugarcane-harvesting-system-8.onrender.com/api';
+const API_BASE = 'http://localhost:5000/api';
 
 export default function AuthPage({ mode, role, onAuth, onNavigate }) {
     const [formData, setFormData] = useState({
@@ -54,8 +54,10 @@ export default function AuthPage({ mode, role, onAuth, onNavigate }) {
                     {mode === 'signup' && (
                         <>
                             <div className="form-group">
-                                <label>Full Name</label>
+                                <label htmlFor="auth-name">Full Name</label>
                                 <input
+                                    id="auth-name"
+                                    name="name"
                                     type="text"
                                     required
                                     value={formData.name}
@@ -63,8 +65,10 @@ export default function AuthPage({ mode, role, onAuth, onNavigate }) {
                                 />
                             </div>
                             <div className="form-group">
-                                <label>Factory</label>
+                                <label htmlFor="auth-factory">Factory</label>
                                 <select
+                                    id="auth-factory"
+                                    name="factory_id"
                                     value={formData.factory_id}
                                     onChange={(e) => setFormData({ ...formData, factory_id: e.target.value })}
                                 >
@@ -80,8 +84,10 @@ export default function AuthPage({ mode, role, onAuth, onNavigate }) {
                         </>
                     )}
                     <div className="form-group">
-                        <label>Phone Number</label>
+                        <label htmlFor="auth-phone">Phone Number</label>
                         <input
+                            id="auth-phone"
+                            name="phone"
                             type="tel"
                             required
                             value={formData.phone}
@@ -89,8 +95,10 @@ export default function AuthPage({ mode, role, onAuth, onNavigate }) {
                         />
                     </div>
                     <div className="form-group">
-                        <label>Password</label>
+                        <label htmlFor="auth-password">Password</label>
                         <input
+                            id="auth-password"
+                            name="password"
                             type="password"
                             required
                             value={formData.password}

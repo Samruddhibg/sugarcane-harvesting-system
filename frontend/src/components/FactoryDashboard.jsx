@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Chart from 'chart.js/auto';
 
-const API_BASE = 'https://sugarcane-harvesting-system-8.onrender.com/api';
+const API_BASE = 'http://localhost:5000/api';
 
 export default function FactoryDashboard({ user, token, onLogout }) {
     const [activeTab, setActiveTab] = useState('home');

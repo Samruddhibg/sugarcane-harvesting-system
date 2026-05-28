@@ -3,7 +3,7 @@ import logging
 from datetime import date, datetime
 from psycopg.rows import dict_row
 from db import get_db_conn, release_db_conn
-from utils import verify_token
+from utils import verify_token, get_authenticated_user
 
 factory_bp = Blueprint('factory', __name__)
 logger = logging.getLogger(__name__)
@@ -11,10 +11,9 @@ logger = logging.getLogger(__name__)
 @factory_bp.route("/dashboard", methods=["GET"])
 def dashboard():
     """Get factory dashboard with analytics"""
-    token = request.headers.get('Authorization', '').replace('Bearer ', '')
-    user = verify_token(token)
+    user = get_authenticated_user(request, 'factory_admin')
     
-    if not user or user['role'] != 'factory_admin':
+    if not user:
         return jsonify({"error": "Unauthorized"}), 401
     
     conn = None
@@ -132,15 +131,14 @@ def dashboard():
 @factory_bp.route("/trigger-assignment", methods=["POST"])
 def trigger_assignment():
     """Factory admin manually triggers assignment job"""
-    token = request.headers.get('Authorization', '').replace('Bearer ', '')
-    user = verify_token(token)
+    user = get_authenticated_user(request, 'factory_admin')
     
-    if not user or user['role'] != 'factory_admin':
+    if not user:
         return jsonify({"error": "Unauthorized"}), 401
     
     try:
-        from services.scheduler import daily_assignment_job
-        daily_assignment_job()
+        from services.scheduler import schedule_harvesting_job
+        schedule_harvesting_job()
         return jsonify({"status": "success", "message": "Assignment job completed"}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500

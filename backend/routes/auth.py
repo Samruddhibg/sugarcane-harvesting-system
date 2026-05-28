@@ -2,7 +2,7 @@ from flask import Blueprint, request, jsonify
 import logging
 from psycopg.rows import dict_row
 from db import get_db_conn, release_db_conn
-from utils import hash_password, generate_token
+from utils import hash_password, generate_jwt_token, get_auth_token
 
 auth_bp = Blueprint('auth', __name__)
 logger = logging.getLogger(__name__)
@@ -29,18 +29,23 @@ def signup():
         if cur.fetchone():
             return jsonify({"error": "Phone number already registered"}), 409
         
-        # Create user
         password_hash = hash_password(data['password'])
-        token = generate_token()
-        
         cur.execute("""
-            INSERT INTO users (name, phone, password_hash, role, factory_id, session_token)
-            VALUES (%s, %s, %s, %s, %s, %s)
+            INSERT INTO users (name, phone, password_hash, role, factory_id)
+            VALUES (%s, %s, %s, %s, %s)
             RETURNING user_id, name, role, factory_id
-        """, (data['name'], data['phone'], password_hash, data['role'], 
-              data['factory_id'], token))
+        """, (data['name'], data['phone'], password_hash, data['role'], data['factory_id']))
         
         user = cur.fetchone()
+        if not user:
+            raise Exception("Failed to create user")
+
+        token = generate_jwt_token(user[0], user[2], user[3])
+        cur.execute("""
+            UPDATE users SET session_token = %s, last_login = NOW()
+            WHERE user_id = %s
+        """, (token, user[0]))
+        
         conn.commit()
         cur.close()
         
@@ -91,8 +96,7 @@ def login():
         if not user:
             return jsonify({"error": "Invalid credentials"}), 401
         
-        # Generate new token
-        token = generate_token()
+        token = generate_jwt_token(user['user_id'], user['role'], user['factory_id'])
         cur.execute("""
             UPDATE users SET session_token = %s, last_login = NOW()
             WHERE user_id = %s
@@ -123,7 +127,7 @@ def login():
 @auth_bp.route("/logout", methods=["POST"])
 def logout():
     """User logout"""
-    token = request.headers.get('Authorization', '').replace('Bearer ', '')
+    token = get_auth_token(request)
     
     if not token:
         return jsonify({"error": "No token provided"}), 401

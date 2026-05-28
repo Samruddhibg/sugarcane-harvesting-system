@@ -3,7 +3,7 @@ import logging
 from datetime import date, datetime
 from psycopg.rows import dict_row
 from db import get_db_conn, release_db_conn
-from utils import verify_token
+from utils import verify_token, get_authenticated_user
 
 farmer_bp = Blueprint('farmer', __name__)
 logger = logging.getLogger(__name__)
@@ -11,10 +11,9 @@ logger = logging.getLogger(__name__)
 @farmer_bp.route("/register-crop", methods=["POST"])
 def register_crop():
     """Farmer registers a new crop"""
-    token = request.headers.get('Authorization', '').replace('Bearer ', '')
-    user = verify_token(token)
+    user = get_authenticated_user(request, 'farmer')
     
-    if not user or user['role'] != 'farmer':
+    if not user:
         return jsonify({"error": "Unauthorized"}), 401
     
     data = request.json
@@ -64,10 +63,9 @@ def register_crop():
 @farmer_bp.route("/dashboard", methods=["GET"])
 def dashboard():
     """Get farmer dashboard data"""
-    token = request.headers.get('Authorization', '').replace('Bearer ', '')
-    user = verify_token(token)
+    user = get_authenticated_user(request, 'farmer')
     
-    if not user or user['role'] != 'farmer':
+    if not user:
         return jsonify({"error": "Unauthorized"}), 401
     
     conn = None
@@ -143,10 +141,9 @@ def dashboard():
 @farmer_bp.route("/request/<int:request_id>/accept", methods=["POST"])
 def accept_request(request_id):
     """Farmer accepts assignment request"""
-    token = request.headers.get('Authorization', '').replace('Bearer ', '')
-    user = verify_token(token)
+    user = get_authenticated_user(request, 'farmer')
     
-    if not user or user['role'] != 'farmer':
+    if not user:
         return jsonify({"error": "Unauthorized"}), 401
     
     conn = None
@@ -200,6 +197,28 @@ def accept_request(request_id):
             UPDATE f_register SET status = 'assigned'
             WHERE f_id = %s
         """, (req['farmer_id'],))
+
+        # Cleanup: remove other pending requests for same farmer
+        cur.execute("""
+            UPDATE assignment_requests SET status = 'cancelled', updated_at = NOW()
+            WHERE farmer_id = %s AND status = 'pending' AND assignment_request_id != %s
+        """, (req['farmer_id'], request_id))
+
+        # Notify machine owner and factory admins
+        cur.execute("""
+            INSERT INTO notifications (user_id, user_type, message) VALUES (
+                (SELECT user_id FROM m_register WHERE m_id = %s), 'machine_owner', %s
+            )
+        """, (req['machine_id'], f'Farmer accepted assignment #{request_id}.'))
+
+        cur.execute("""
+            SELECT user_id FROM users WHERE role = 'factory_admin' AND factory_id = %s
+        """, (req['factory_id'],))
+        admins = cur.fetchall()
+        for a in admins:
+            cur.execute("""
+                INSERT INTO notifications (user_id, user_type, message) VALUES (%s, %s, %s)
+            """, (a['user_id'], 'factory_admin', f'Farmer accepted assignment #{request_id}.'))
         
         conn.commit()
         cur.close()
@@ -220,10 +239,9 @@ def accept_request(request_id):
 @farmer_bp.route("/request/<int:request_id>/reject", methods=["POST"])
 def reject_request(request_id):
     """Farmer rejects assignment request"""
-    token = request.headers.get('Authorization', '').replace('Bearer ', '')
-    user = verify_token(token)
+    user = get_authenticated_user(request, 'farmer')
     
-    if not user or user['role'] != 'farmer':
+    if not user:
         return jsonify({"error": "Unauthorized"}), 401
     
     conn = None
@@ -240,7 +258,7 @@ def reject_request(request_id):
             AND ar.farmer_id = f.f_id 
             AND f.user_id = %s 
             AND ar.status = 'pending'
-            RETURNING ar.machine_id
+            RETURNING ar.machine_id, ar.farmer_id, ar.factory_id
         """, (request_id, user['user_id']))
         
         result = cur.fetchone()
@@ -253,6 +271,22 @@ def reject_request(request_id):
             UPDATE m_register SET m_status = 'idle'
             WHERE m_id = %s
         """, (result['machine_id'],))
+
+        # Notify machine owner and factory admins
+        cur.execute("""
+            INSERT INTO notifications (user_id, user_type, message) VALUES (
+                (SELECT user_id FROM m_register WHERE m_id = %s), 'machine_owner', %s
+            )
+        """, (result['machine_id'], f'Farmer rejected assignment #{request_id}.'))
+
+        cur.execute("""
+            SELECT user_id FROM users WHERE role = 'factory_admin' AND factory_id = %s
+        """, (result['factory_id'],))
+        admins = cur.fetchall()
+        for a in admins:
+            cur.execute("""
+                INSERT INTO notifications (user_id, user_type, message) VALUES (%s, %s, %s)
+            """, (a['user_id'], 'factory_admin', f'Farmer rejected assignment #{request_id}.'))
         
         conn.commit()
         cur.close()

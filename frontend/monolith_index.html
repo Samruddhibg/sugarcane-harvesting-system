@@ -1,0 +1,1253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sugarcane Harvesting System</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        /* Navbar */
+        .navbar {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .navbar-brand {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .navbar-menu {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .nav-link {
+            background: none;
+            border: none;
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            font-size: 1rem;
+            color: #333;
+            transition: all 0.3s;
+            border-radius: 5px;
+        }
+
+        .nav-link:hover {
+            background: #f0f0f0;
+        }
+
+        .nav-link.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-logout {
+            background: #dc3545;
+            color: white;
+            padding: 0.5rem 1.5rem;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        .btn-logout:hover {
+            background: #c82333;
+        }
+
+        /* Hero Section */
+        .hero {
+            background: white;
+            margin: 2rem;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+
+        .hero-title {
+            font-size: 2rem;
+            color: #333;
+            margin-bottom: 1rem;
+        }
+
+        /* Landing Page */
+        .landing-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 80vh;
+            padding: 2rem;
+        }
+
+        .landing-hero {
+            text-align: center;
+            color: white;
+            margin-bottom: 3rem;
+        }
+
+        .landing-hero h1 {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .landing-hero p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .landing-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            max-width: 1200px;
+            width: 100%;
+        }
+
+        .landing-card {
+            background: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+            text-align: center;
+            transition: transform 0.3s;
+        }
+
+        .landing-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .landing-card h2 {
+            color: #667eea;
+            margin-bottom: 1rem;
+        }
+
+        .landing-card p {
+            color: #666;
+            margin-bottom: 1.5rem;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+            padding: 0.75rem 2rem;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 500;
+            transition: background 0.3s;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+        }
+
+        /* Auth Forms */
+        .auth-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 80vh;
+            padding: 2rem;
+        }
+
+        .auth-box {
+            background: white;
+            padding: 3rem;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            width: 100%;
+            max-width: 500px;
+        }
+
+        .auth-box h2 {
+            color: #667eea;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #333;
+            font-weight: 500;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 1rem;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn-submit {
+            width: 100%;
+            background: #667eea;
+            color: white;
+            padding: 1rem;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            margin-top: 1rem;
+        }
+
+        .btn-submit:hover {
+            background: #5568d3;
+        }
+
+        .auth-switch {
+            text-align: center;
+            margin-top: 1.5rem;
+            color: #666;
+        }
+
+        .auth-switch button {
+            background: none;
+            border: none;
+            color: #667eea;
+            cursor: pointer;
+            text-decoration: underline;
+            font-size: 1rem;
+        }
+
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 0.75rem;
+            border-radius: 5px;
+            margin-bottom: 1rem;
+        }
+
+        .success-message {
+            background: #d4edda;
+            color: #155724;
+            padding: 0.75rem;
+            border-radius: 5px;
+            margin-bottom: 1rem;
+        }
+
+        /* Dashboard Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1.5rem;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .stat-card h3 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-card p {
+            opacity: 0.9;
+        }
+
+        /* Table */
+        .data-table {
+            width: 100%;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+        }
+
+        .data-table table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .data-table th {
+            background: #667eea;
+            color: white;
+            padding: 1rem;
+            text-align: left;
+        }
+
+        .data-table td {
+            padding: 1rem;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .data-table tr:hover {
+            background: #f8f9fa;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .badge-success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .badge-warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .badge-danger {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .badge-info {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .btn-action {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.875rem;
+            margin-right: 0.5rem;
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-info {
+            background: #17a2b8;
+            color: white;
+        }
+
+        .btn-action:hover {
+            opacity: 0.9;
+        }
+
+        .notification-badge {
+            background: #dc3545;
+            color: white;
+            border-radius: 50%;
+            padding: 0.25rem 0.5rem;
+            font-size: 0.75rem;
+            margin-left: 0.5rem;
+        }
+
+        .chart-container {
+            background: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+            margin-top: 2rem;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 3rem;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // API Configuration
+        const API_BASE = 'http://localhost:5000/api';
+
+        // ==================== LANDING PAGE ====================
+        function LandingPage({ onNavigate }) {
+            return (
+                <div className="landing-container">
+                    <div className="landing-hero">
+                        <h1>🌾 Sugarcane Harvesting System</h1>
+                        <p>Efficient resource allocation for sugarcane farmers and machine owners</p>
+                    </div>
+                    <div className="landing-cards">
+                        <div className="landing-card">
+                            <h2>👨‍🌾 Farmers</h2>
+                            <p>Register your crops and get matched with harvesting machines automatically</p>
+                            <button className="btn-primary" onClick={() => onNavigate('login', 'farmer')}>
+                                Farmer Portal
+                            </button>
+                        </div>
+                        <div className="landing-card">
+                            <h2>🚜 Machine Owners</h2>
+                            <p>Register your machines and receive assignment requests from farmers</p>
+                            <button className="btn-primary" onClick={() => onNavigate('login', 'machine_owner')}>
+                                Machine Owner Portal
+                            </button>
+                        </div>
+                        <div className="landing-card">
+                            <h2>🏭 Factory Admin</h2>
+                            <p>Manage operations, view analytics, and monitor assignments</p>
+                            <button className="btn-primary" onClick={() => onNavigate('login', 'factory_admin')}>
+                                Admin Dashboard
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // ==================== AUTH PAGES ====================
+        function AuthPage({ mode, role, onAuth, onNavigate }) {
+            const [formData, setFormData] = useState({
+                name: '',
+                phone: '',
+                password: '',
+                factory_id: '1'
+            });
+            const [error, setError] = useState('');
+            const [loading, setLoading] = useState(false);
+
+            const handleSubmit = async (e) => {
+                e.preventDefault();
+                setError('');
+                setLoading(true);
+
+                try {
+                    const endpoint = mode === 'signup' ? '/auth/signup' : '/auth/login';
+                    const payload = mode === 'signup' 
+                        ? { ...formData, role }
+                        : { phone: formData.phone, password: formData.password };
+
+                    const response = await fetch(API_BASE + endpoint, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    const data = await response.json();
+
+                    if (response.ok) {
+                        localStorage.setItem('token', data.token);
+                        localStorage.setItem('user', JSON.stringify(data));
+                        onAuth(data);
+                    } else {
+                        setError(data.error || 'Authentication failed');
+                    }
+                } catch (err) {
+                    setError('Connection error. Please check if backend is running.');
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            return (
+                <div className="auth-container">
+                    <div className="auth-box">
+                        <h2>{mode === 'signup' ? 'Sign Up' : 'Login'} - {role.replace('_', ' ').toUpperCase()}</h2>
+                        {error && <div className="error-message">{error}</div>}
+                        <form onSubmit={handleSubmit}>
+                            {mode === 'signup' && (
+                                <>
+                                    <div className="form-group">
+                                        <label htmlFor="auth-name">Full Name</label>
+                                        <input
+                                            id="auth-name"
+                                            name="name"
+                                            type="text"
+                                            required
+                                            value={formData.name}
+                                            onChange={(e) => setFormData({...formData, name: e.target.value})}
+                                        />
+                                    </div>
+                                    <div className="form-group">
+                                        <label htmlFor="auth-factory">Factory</label>
+                                        <select
+                                            id="auth-factory"
+                                            name="factory_id"
+                                            value={formData.factory_id}
+                                            onChange={(e) => setFormData({...formData, factory_id: e.target.value})}
+                                        >
+                                            <option value="1">Factory Alpha (North Zone)</option>
+                                            <option value="2">Factory Beta (South Zone)</option>
+                                            <option value="3">Factory Gamma (East Zone)</option>
+                                            <option value="4">Factory Delta (West Zone)</option>
+                                            <option value="5">Factory Epsilon (Central Zone)</option>
+                                            <option value="6">Factory Zeta (North-East Zone)</option>
+                                            <option value="7">Factory Eta (South-West Zone)</option>
+                                        </select>
+                                    </div>
+                                </>
+                            )}
+                            <div className="form-group">
+                                <label htmlFor="auth-phone">Phone Number</label>
+                                <input
+                                    id="auth-phone"
+                                    name="phone"
+                                    type="tel"
+                                    required
+                                    value={formData.phone}
+                                    onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label htmlFor="auth-password">Password</label>
+                                <input
+                                    id="auth-password"
+                                    name="password"
+                                    type="password"
+                                    required
+                                    value={formData.password}
+                                    onChange={(e) => setFormData({...formData, password: e.target.value})}
+                                />
+                            </div>
+                            <button type="submit" className="btn-submit" disabled={loading}>
+                                {loading ? 'Please wait...' : (mode === 'signup' ? 'Sign Up' : 'Login')}
+                            </button>
+                        </form>
+                        <div className="auth-switch">
+                            {mode === 'signup' ? (
+                                <>
+                                    Already have an account?{' '}
+                                    <button onClick={() => onNavigate('login', role)}>Login</button>
+                                </>
+                            ) : (
+                                <>
+                                    Don't have an account?{' '}
+                                    <button onClick={() => onNavigate('signup', role)}>Sign Up</button>
+                                </>
+                            )}
+                        </div>
+                        <div className="auth-switch">
+                            <button onClick={() => onNavigate('home')}>← Back to Home</button>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // ==================== FARMER DASHBOARD ====================
+        function FarmerDashboard({ user, token, onLogout }) {
+            const [activeTab, setActiveTab] = useState('home');
+            const [dashboardData, setDashboardData] = useState(null);
+            const [notifications, setNotifications] = useState([]);
+            const [loading, setLoading] = useState(true);
+
+            useEffect(() => {
+                loadDashboard();
+                loadNotifications();
+            }, []);
+
+            const loadDashboard = async () => {
+                try {
+                    const response = await fetch(API_BASE + '/farmer/dashboard', {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    const data = await response.json();
+                    setDashboardData(data);
+                } catch (err) {
+                    console.error('Dashboard load error:', err);
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            const loadNotifications = async () => {
+                try {
+                    const response = await fetch(API_BASE + '/notifications', {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    const data = await response.json();
+                    setNotifications(data);
+                } catch (err) {
+                    console.error('Notifications load error:', err);
+                }
+            };
+
+            const handleAccept = async (requestId) => {
+                try {
+                    await fetch(API_BASE + `/farmer/request/${requestId}/accept`, {
+                        method: 'POST',
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    loadDashboard();
+                } catch (err) {
+                    alert('Failed to accept request');
+                }
+            };
+
+            const handleReject = async (requestId) => {
+                try {
+                    await fetch(API_BASE + `/farmer/request/${requestId}/reject`, {
+                        method: 'POST',
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    loadDashboard();
+                } catch (err) {
+                    alert('Failed to reject request');
+                }
+            };
+
+            if (loading) return <div className="loading">Loading...</div>;
+
+            return (
+                <>
+                    <nav className="navbar">
+                        <div className="navbar-brand">🌾 Farmer Portal</div>
+                        <div className="navbar-menu">
+                            <button className={`nav-link ${activeTab === 'home' ? 'active' : ''}`} 
+                                    onClick={() => setActiveTab('home')}>
+                                Home
+                            </button>
+                            <button className={`nav-link ${activeTab === 'register' ? 'active' : ''}`}
+                                    onClick={() => setActiveTab('register')}>
+                                Register Crop
+                            </button>
+                            <button className={`nav-link ${activeTab === 'profile' ? 'active' : ''}`}
+                                    onClick={() => setActiveTab('profile')}>
+                                Profile
+                            </button>
+                            <button className={`nav-link ${activeTab === 'notifications' ? 'active' : ''}`}
+                                    onClick={() => setActiveTab('notifications')}>
+                                Notifications
+                                {notifications.filter(n => !n.read_at).length > 0 && (
+                                    <span className="notification-badge">
+                                        {notifications.filter(n => !n.read_at).length}
+                                    </span>
+                                )}
+                            </button>
+                            <button className="btn-logout" onClick={onLogout}>Logout</button>
+                        </div>
+                    </nav>
+
+                    {activeTab === 'home' && (
+                        <div className="hero">
+                            <h2 className="hero-title">Welcome, {user.name}!</h2>
+                            
+                            <div className="stats-grid">
+                                <div className="stat-card">
+                                    <h3>{dashboardData.stats.total_crops}</h3>
+                                    <p>Total Crops</p>
+                                </div>
+                                <div className="stat-card">
+                                    <h3>{dashboardData.stats.pending_crops}</h3>
+                                    <p>Pending</p>
+                                </div>
+                                <div className="stat-card">
+                                    <h3>{dashboardData.stats.assigned_crops}</h3>
+                                    <p>Assigned</p>
+                                </div>
+                            </div>
+
+                            {dashboardData.pending_requests.length > 0 && (
+                                <div className="data-table">
+                                    <h3 style={{padding: '1rem'}}>⏰ Pending Assignment Requests</h3>
+                                    <table>
+                                        <thead>
+                                            <tr>
+                                                <th>Machine Owner</th>
+                                                <th>Scheduled Date</th>
+                                                <th>Crop (acres)</th>
+                                                <th>Expires At</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {dashboardData.pending_requests.map(req => (
+                                                <tr key={req.assignment_request_id}>
+                                                    <td>{req.machine_owner}</td>
+                                                    <td>{req.scheduled_date}</td>
+                                                    <td>{req.f_crop}</td>
+                                                    <td>{new Date(req.expires_at).toLocaleString()}</td>
+                                                    <td>
+                                                        <button className="btn-action btn-success" 
+                                                                onClick={() => handleAccept(req.assignment_request_id)}>
+                                                            Accept
+                                                        </button>
+                                                        <button className="btn-action btn-danger"
+                                                                onClick={() => handleReject(req.assignment_request_id)}>
+                                                            Reject
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
+
+                            <div className="data-table">
+                                <h3 style={{padding: '1rem'}}>📋 Assignment History</h3>
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Machine Owner</th>
+                                            <th>Assigned Date</th>
+                                            <th>Completion</th>
+                                            <th>Crop (acres)</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {dashboardData.assignments.map(assignment => (
+                                            <tr key={assignment.assignment_id}>
+                                                <td>{assignment.machine_owner}</td>
+                                                <td>{assignment.assigned_date}</td>
+                                                <td>{assignment.estimated_completion}</td>
+                                                <td>{assignment.f_crop}</td>
+                                                <td>
+                                                    <span className={`badge badge-${
+                                                        assignment.status === 'completed' ? 'success' : 'info'
+                                                    }`}>
+                                                        {assignment.status}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    )}
+
+                    {activeTab === 'notifications' && (
+                        <div className="hero">
+                            <h2 className="hero-title">🔔 Notifications</h2>
+                            <div className="data-table">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Message</th>
+                                            <th>Time</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {notifications.map(notif => (
+                                            <tr key={notif.notification_id}>
+                                                <td>{notif.message}</td>
+                                                <td>{new Date(notif.sent_at).toLocaleString()}</td>
+                                                <td>
+                                                    <span className={`badge ${notif.read_at ? 'badge-success' : 'badge-warning'}`}>
+                                                        {notif.read_at ? 'Read' : 'Unread'}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    )}
+                </>
+            );
+        }
+
+        // ==================== MACHINE OWNER DASHBOARD ====================
+        function MachineOwnerDashboard({ user, token, onLogout }) {
+            const [activeTab, setActiveTab] = useState('home');
+            const [dashboardData, setDashboardData] = useState(null);
+            const [loading, setLoading] = useState(true);
+
+            useEffect(() => {
+                loadDashboard();
+            }, []);
+
+            const loadDashboard = async () => {
+                try {
+                    const response = await fetch(API_BASE + '/machine/dashboard', {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    const data = await response.json();
+                    setDashboardData(data);
+                } catch (err) {
+                    console.error('Dashboard load error:', err);
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            const updateStatus = async (machineId, newStatus) => {
+                try {
+                    await fetch(API_BASE + `/machine/${machineId}/status`, {
+                        method: 'PUT',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ status: newStatus })
+                    });
+                    loadDashboard();
+                } catch (err) {
+                    alert('Failed to update status');
+                }
+            };
+
+            if (loading) return <div className="loading">Loading...</div>;
+
+            return (
+                <>
+                    <nav className="navbar">
+                        <div className="navbar-brand">🚜 Machine Owner Portal</div>
+                        <div className="navbar-menu">
+                            <button className={`nav-link ${activeTab === 'home' ? 'active' : ''}`}
+                                    onClick={() => setActiveTab('home')}>
+                                Home
+                            </button>
+                            <button className={`nav-link ${activeTab === 'register' ? 'active' : ''}`}
+                                    onClick={() => setActiveTab('register')}>
+                                Register Machine
+                            </button>
+                            <button className={`nav-link ${activeTab === 'profile' ? 'active' : ''}`}
+                                    onClick={() => setActiveTab('profile')}>
+                                Profile
+                            </button>
+                            <button className="btn-logout" onClick={onLogout}>Logout</button>
+                        </div>
+                    </nav>
+
+                    <div className="hero">
+                        <h2 className="hero-title">Welcome, {user.name}!</h2>
+                        
+                        <div className="stats-grid">
+                            <div className="stat-card">
+                                <h3>{dashboardData.stats.total_machines}</h3>
+                                <p>Total Machines</p>
+                            </div>
+                            <div className="stat-card">
+                                <h3>{dashboardData.stats.idle_machines}</h3>
+                                <p>Available</p>
+                            </div>
+                            <div className="stat-card">
+                                <h3>{dashboardData.stats.busy_machines}</h3>
+                                <p>Working</p>
+                            </div>
+                        </div>
+
+                        <div className="data-table">
+                            <h3 style={{padding: '1rem'}}>🚜 My Machines</h3>
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Machine ID</th>
+                                        <th>Address</th>
+                                        <th>District</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {dashboardData.machines.map(machine => (
+                                        <tr key={machine.m_id}>
+                                            <td>#{machine.m_id}</td>
+                                            <td>{machine.m_address}</td>
+                                            <td>{machine.m_district}</td>
+                                            <td>
+                                                <span className={`badge badge-${
+                                                    machine.m_status === 'idle' ? 'success' : 
+                                                    machine.m_status === 'busy' ? 'danger' : 'warning'
+                                                }`}>
+                                                    {machine.m_status}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                {machine.m_status === 'busy' && (
+                                                    <button className="btn-action btn-success"
+                                                            onClick={() => updateStatus(machine.m_id, 'idle')}>
+                                                        Mark as Idle
+                                                    </button>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div className="data-table">
+                            <h3 style={{padding: '1rem'}}>📋 Assignment History</h3>
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Farmer</th>
+                                        <th>Phone</th>
+                                        <th>Assigned Date</th>
+                                        <th>Completion</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {dashboardData.assignments.map(assignment => (
+                                        <tr key={assignment.assignment_id}>
+                                            <td>{assignment.farmer_name}</td>
+                                            <td>{assignment.farmer_phone}</td>
+                                            <td>{assignment.assigned_date}</td>
+                                            <td>{assignment.estimated_completion}</td>
+                                            <td>
+                                                <span className={`badge badge-${
+                                                    assignment.status === 'completed' ? 'success' : 'info'
+                                                }`}>
+                                                    {assignment.status}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </>
+            );
+        }
+
+        // ==================== FACTORY ADMIN DASHBOARD ====================
+        function FactoryDashboard({ user, token, onLogout }) {
+            const [activeTab, setActiveTab] = useState('home');
+            const [dashboardData, setDashboardData] = useState(null);
+            const [loading, setLoading] = useState(true);
+
+            useEffect(() => {
+                loadDashboard();
+            }, []);
+
+            const loadDashboard = async () => {
+                try {
+                    const response = await fetch(API_BASE + '/factory/dashboard', {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    const data = await response.json();
+                    setDashboardData(data);
+                    
+                    // Create chart after data loads
+                    setTimeout(() => createChart(data.chart_data), 100);
+                } catch (err) {
+                    console.error('Dashboard load error:', err);
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            const createChart = (chartData) => {
+                const ctx = document.getElementById('assignmentChart');
+                if (!ctx) return;
+
+                new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: chartData.map(d => d.assigned_date),
+                        datasets: [{
+                            label: 'Assignments',
+                            data: chartData.map(d => d.assignments),
+                            backgroundColor: 'rgba(102, 126, 234, 0.5)',
+                            borderColor: 'rgba(102, 126, 234, 1)',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        scales: {
+                            y: {
+                                beginAtZero: true
+                            }
+                        }
+                    }
+                });
+            };
+
+            if (loading) return <div className="loading">Loading...</div>;
+
+            return (
+                <>
+                    <nav className="navbar">
+                        <div className="navbar-brand">🏭 Factory Dashboard</div>
+                        <div className="navbar-menu">
+                            <button className={`nav-link ${activeTab === 'home' ? 'active' : ''}`}
+                                    onClick={() => setActiveTab('home')}>
+                                Home
+                            </button>
+                            <button className={`nav-link ${activeTab === 'farmers' ? 'active' : ''}`}
+                                    onClick={() => setActiveTab('farmers')}>
+                                All Farmers
+                            </button>
+                            <button className={`nav-link ${activeTab === 'machines' ? 'active' : ''}`}
+                                    onClick={() => setActiveTab('machines')}>
+                                All Machines
+                            </button>
+                            <button className={`nav-link ${activeTab === 'profile' ? 'active' : ''}`}
+                                    onClick={() => setActiveTab('profile')}>
+                                Profile
+                            </button>
+                            <button className="btn-logout" onClick={onLogout}>Logout</button>
+                        </div>
+                    </nav>
+
+                    {activeTab === 'home' && (
+                        <div className="hero">
+                            <h2 className="hero-title">{dashboardData.factory.name}</h2>
+                            
+                            <div className="stats-grid">
+                                <div className="stat-card">
+                                    <h3>{dashboardData.stats.total_farmers}</h3>
+                                    <p>Total Farmers</p>
+                                </div>
+                                <div className="stat-card">
+                                    <h3>{dashboardData.stats.pending_farmers}</h3>
+                                    <p>Pending</p>
+                                </div>
+                                <div className="stat-card">
+                                    <h3>{dashboardData.stats.total_machines}</h3>
+                                    <p>Total Machines</p>
+                                </div>
+                                <div className="stat-card">
+                                    <h3>{dashboardData.stats.today_assignments}</h3>
+                                    <p>Today's Assignments</p>
+                                </div>
+                            </div>
+
+                            <div className="data-table">
+                                <h3 style={{padding: '1rem'}}>
+                                    📊 Capacity: {dashboardData.stats.capacity_used_percent.toFixed(1)}% Used
+                                </h3>
+                                <div style={{padding: '1rem'}}>
+                                    <div style={{background: '#f0f0f0', borderRadius: '10px', height: '30px', overflow: 'hidden'}}>
+                                        <div style={{
+                                            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                            height: '100%',
+                                            width: `${dashboardData.stats.capacity_used_percent}%`,
+                                            transition: 'width 0.3s'
+                                        }}></div>
+                                    </div>
+                                    <p style={{marginTop: '0.5rem', color: '#666'}}>
+                                        {dashboardData.stats.today_production.toLocaleString()} kg / {dashboardData.stats.capacity.toLocaleString()} kg
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="chart-container">
+                                <h3>Last 7 Days Assignments</h3>
+                                <canvas id="assignmentChart"></canvas>
+                            </div>
+
+                            <div className="data-table">
+                                <h3 style={{padding: '1rem'}}>📋 Today's Assignments</h3>
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Farmer</th>
+                                            <th>Machine Owner</th>
+                                            <th>Crop (acres)</th>
+                                            <th>Production (kg)</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {dashboardData.today_assignments.map(assignment => (
+                                            <tr key={assignment.assignment_id}>
+                                                <td>{assignment.farmer_name}</td>
+                                                <td>{assignment.machine_owner}</td>
+                                                <td>{assignment.f_crop}</td>
+                                                <td>{assignment.production_kg.toLocaleString()}</td>
+                                                <td>
+                                                    <span className="badge badge-info">{assignment.status}</span>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    )}
+
+                    {activeTab === 'farmers' && (
+                        <div className="hero">
+                            <h2 className="hero-title">All Farmers</h2>
+                            <div className="data-table">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Name</th>
+                                            <th>Phone</th>
+                                            <th>Crop (acres)</th>
+                                            <th>Planting Date</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {dashboardData.farmers.map(farmer => (
+                                            <tr key={farmer.f_id}>
+                                                <td>{farmer.f_name}</td>
+                                                <td>{farmer.f_phone_number}</td>
+                                                <td>{farmer.f_crop}</td>
+                                                <td>{farmer.f_planting_date}</td>
+                                                <td>
+                                                    <span className={`badge badge-${
+                                                        farmer.status === 'assigned' ? 'success' : 'warning'
+                                                    }`}>
+                                                        {farmer.status}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    )}
+
+                    {activeTab === 'machines' && (
+                        <div className="hero">
+                            <h2 className="hero-title">All Machines</h2>
+                            <div className="data-table">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Machine ID</th>
+                                            <th>Owner</th>
+                                            <th>Phone</th>
+                                            <th>District</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {dashboardData.machines.map(machine => (
+                                            <tr key={machine.m_id}>
+                                                <td>#{machine.m_id}</td>
+                                                <td>{machine.owner_name}</td>
+                                                <td>{machine.m_phone_number}</td>
+                                                <td>{machine.m_district}</td>
+                                                <td>
+                                                    <span className={`badge badge-${
+                                                        machine.m_status === 'idle' ? 'success' : 'danger'
+                                                    }`}>
+                                                        {machine.m_status}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    )}
+                </>
+            );
+        }
+
+        // ==================== MAIN APP ====================
+        function App() {
+            const [currentPage, setCurrentPage] = useState('home');
+            const [authMode, setAuthMode] = useState('login');
+            const [role, setRole] = useState('farmer');
+            const [user, setUser] = useState(null);
+            const [token, setToken] = useState(null);
+
+            useEffect(() => {
+                // Check if already logged in
+                const savedToken = localStorage.getItem('token');
+                const savedUser = localStorage.getItem('user');
+                if (savedToken && savedUser) {
+                    setToken(savedToken);
+                    setUser(JSON.parse(savedUser));
+                    setCurrentPage('dashboard');
+                }
+            }, []);
+
+            const handleNavigate = (page, userRole) => {
+                setCurrentPage(page);
+                if (userRole) setRole(userRole);
+            };
+
+            const handleAuth = (userData) => {
+                setUser(userData);
+                setToken(userData.token);
+                setCurrentPage('dashboard');
+            };
+
+            const handleLogout = async () => {
+                await fetch(API_BASE + '/auth/logout', {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+                setUser(null);
+                setToken(null);
+                setCurrentPage('home');
+            };
+
+            if (currentPage === 'home') {
+                return <LandingPage onNavigate={handleNavigate} />;
+            }
+
+            if (currentPage === 'login' || currentPage === 'signup') {
+                return <AuthPage 
+                    mode={currentPage} 
+                    role={role} 
+                    onAuth={handleAuth}
+                    onNavigate={handleNavigate}
+                />;
+            }
+
+            if (currentPage === 'dashboard' && user) {
+                if (user.role === 'farmer') {
+                    return <FarmerDashboard user={user} token={token} onLogout={handleLogout} />;
+                } else if (user.role === 'machine_owner') {
+                    return <MachineOwnerDashboard user={user} token={token} onLogout={handleLogout} />;
+                } else if (user.role === 'factory_admin') {
+                    return <FactoryDashboard user={user} token={token} onLogout={handleLogout} />;
+                }
+            }
+
+            return <div className="loading">Loading...</div>;
+        }
+
+        // ==================== RENDER ====================
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
+</html>
